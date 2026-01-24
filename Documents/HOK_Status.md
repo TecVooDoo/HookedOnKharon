@@ -6,7 +6,7 @@
 **Platform:** Unity (Version TBD)
 **Source:** `E:\Unity\Hooked On Kharon`
 **Repository:** https://github.com/TecVooDoo/HookedOnKharon
-**Document Version:** 7
+**Document Version:** 9
 **Last Updated:** January 24, 2026
 
 **Archive:** `HookedOnKharon_Status_Archive.md` - Historical designs, old version history, completed phase details (create when needed)
@@ -21,7 +21,7 @@
 
 **Current Phase:** Pre-Production
 
-**Last Session (Jan 24, 2026):** Implemented raft navigation - RaftController with spline-based movement, FollowTarget for Kharon/Scorch, side-scrolling camera setup, input bindings (WASD + arrows). Created HOK_CodeReference.md for architecture tracking.
+**Last Session (Jan 24, 2026):** Fixed coordinate system - camera now at -Z looking toward +Z (standard Unity orientation). Rebuilt Acheron greybox layout to match reference diagram with Y-shaped river (main river + merchant branch). Added colored materials for visibility (banks=dark green, docks=light brown, raft=orange). Splines still need fine-tuning next session.
 
 ---
 
@@ -46,24 +46,58 @@
 - [x] Set up Input Actions (HOKInputActions.inputactions)
 - [x] Create Bootstrap scene with persistent GameManager
 - [x] Integrate SOAP for game state management
-- [ ] Define precise MVP scope
-- [ ] Coordinate art asset list with Son
+- [x] Define precise MVP scope
+- [ ] Coordinate art asset list with Son (deferred - waiting on Son)
 
-### Soon (Prototype)
+### MVP Prototype - Navigation
 - [x] Create prototype river scene (greybox Acheron)
 - [x] Wire up input handling (PlayerInput component)
-- [ ] Set up additional SOAP events/variables (fishing, ferry, currency)
-- [ ] Core fishing loop prototype
-- [ ] Kharon state transitions (On-Duty/Off-Duty)
-- [ ] Scorch proximity detection system
-- [ ] Basic ferry interruption flow
+- [x] Basic raft movement along spline
+- [x] Junction/branch system (up input to take alternate route)
+- [x] Merchant branch spline off Acheron
+- [ ] Central Hub scene (drop-off dock only)
+- [ ] Hub free movement (not spline-locked, full WASD)
+- [ ] Hub camera (third-person, behind/above, angled down)
+- [ ] Scene transitions between Acheron and Hub
+
+### MVP Prototype - Fishing
+- [ ] Set up fishing SOAP events/variables
+- [ ] Fish definitions (10 fish: 6 common, 3 uncommon, 1 rare)
+- [ ] Cast mechanic with aim
+- [ ] Line visual (cast to water)
+- [ ] Fish bite detection and hook timing
+- [ ] Tension-based reeling (give slack / reel in)
+- [ ] Catch resolution (success/fail)
+- [ ] Idle fishing stub (auto-cast, same reel mechanics)
+- [ ] Scorch proximity detection (flame intensity for rare fish)
+
+### MVP Prototype - Ferry
+- [ ] Set up ferry SOAP events/variables (currency, soul state)
+- [ ] Kharon state transitions (Off-Duty/On-Duty)
+- [ ] Soul spawn at Acheron pickup dock
+- [ ] Soul decay timer system
+- [ ] Pickup dock interaction
+- [ ] Drop-off dock interaction (Hub)
+- [ ] Payment system (full obol, partial, nothing variants)
+- [ ] Ferry interruption flow (soul arrives → fishing interrupted)
+
+### MVP Prototype - Progression
+- [ ] Obols currency tracking
+- [ ] Damned Merchant shop (Acheron branch)
+- [ ] 3-4 gear upgrades (rod, line, lures)
+- [ ] Gear affects fishing mechanics
 
 ### Future (Post-MVP)
-- [ ] All 5 rivers and merchants
+- [ ] Other 4 rivers (Styx, Lethe, Phlegethon, Cocytus)
+- [ ] Waterfall connectors between rivers
 - [ ] Full fish codex (50+ species)
 - [ ] Legendary fish multi-phase fights
+- [ ] Multiple soul types
+- [ ] Alternative payments (gear from souls)
+- [ ] Hades route blocking system
 - [ ] Special guest encounters
 - [ ] Background events system
+- [ ] Codex UI
 
 ---
 
@@ -90,13 +124,31 @@
 - GameState enum and GameManager script in HOK.Core namespace
 
 **Raft Navigation (DONE):**
-- Acheron_Greybox scene with greybox environment (water, banks, dock)
+- Acheron_Greybox scene with greybox environment (water, banks, docks)
 - RaftController with spline-based movement (Dreamteck Splines)
-- Side-scrolling camera setup (Cinemachine at +X, looking toward -X)
+- Side-scrolling camera setup (Cinemachine at -Z, looking toward +Z)
+- Correct Unity coordinate system: +X=right, -X=left, +Z=top, -Z=bottom
 - FollowTarget script for Kharon/Scorch (avoids scale inheritance from raft)
 - Input bindings: WASD + Arrow keys for ferry movement
-- SplineInitializer editor tool for river spline setup
+- SplineInitializer editor tool for river/branch spline setup
 - HOK_CodeReference.md architecture document created
+- Materials: Bank_DarkGreen, Dock_LightBrown, Raft_Orange for greybox visibility
+
+**Junction System (DONE):**
+- SplineJunction component marks branch points on splines
+- RaftController detects nearby junctions and listens for up input (W/Up Arrow)
+- Visual indicator support (shows when junction is available)
+- Bidirectional junction support (can return to previous spline)
+- Merchant branch spline off Acheron with greybox dock/stall
+- Junction_ToMerchant on main river spline
+- Junction_ToRiver at start of merchant branch (returns to main river)
+
+**Greybox Layout (IN PROGRESS):**
+- Y-shaped river matching reference diagram
+- Main river: entrance (right, +X) to dock (left, -X)
+- Merchant branch: forks from junction toward upper-left (+Z, -X)
+- Banks: BottomBank_Main, MainUpperBank_Right, MainUpperBank_Left, diagonal banks, merchant area banks
+- Splines need fine-tuning to properly follow the channel paths
 
 ---
 
@@ -186,9 +238,10 @@ Assets/
 |--------|-------|---------|
 | GameManager.cs | 68 | Persistent singleton, SOAP state management |
 | GameState.cs | 14 | Game state enum (OffDuty, Fishing, Ferrying, InMenu) |
-| RaftController.cs | 184 | Spline-based raft movement with acceleration |
+| RaftController.cs | ~250 | Spline-based raft movement with junction support |
 | FollowTarget.cs | 47 | Follow target with offset (ExecuteAlways) |
-| SplineInitializer.cs | 74 | Editor tool for river spline setup |
+| SplineJunction.cs | ~140 | Marks branch points on splines for navigation |
+| SplineInitializer.cs | ~110 | Editor tool for river/branch spline setup |
 
 ### Dependencies / Packages (Installed)
 
@@ -525,27 +578,68 @@ public enum PaymentType { FullObol, PartialObol, BarterItem, Nothing }
 
 ## MVP Scope
 
-**In MVP:**
-- 2-3 rivers (Acheron, Styx, maybe Lethe)
-- Core fishing loop (Active + Idle)
-- Ferry interruption system
-- Soul decay timer (basic implementation)
-- Hub navigation (simplified)
-- Scorch companion with proximity detection
-- 1-2 merchants
-- 15-20 fish species
-- Basic progression
-- 2-3 alternative payment items
+**Core Loop:** Fish on Acheron → soul interrupts → ferry to Hub → return → repeat. Spend obols at merchant to upgrade gear.
 
-**NOT in MVP:**
-- All 5 rivers
+### In MVP
+
+**Rivers/Areas:**
+| Area | Features | Notes |
+|------|----------|-------|
+| Acheron (main) | Fishing spots, 1 pickup dock, branch junction | Full functionality |
+| Acheron (merchant branch) | Damned Merchant shop | Tests branch navigation |
+| Central Hub | Drop-off dock only | No fishing, just delivery |
+
+**Junction/Branch System:**
+- Junction points on splines where routes diverge
+- Up input = take alternate route (merchant branch)
+- Continue forward = stay on main path
+- Visual indicator when approaching junction
+- Same system will be used for waterfall connectors post-MVP
+
+**Hub Navigation (different from rivers):**
+- Free movement (not spline-locked) - full WASD/stick control
+- Camera: third-person, behind/above raft, angled down
+- River entrances around perimeter act as exit points
+- Drop-off dock interaction triggers soul delivery
+
+**Fish (10 total on Acheron):**
+- 6 Common
+- 3 Uncommon
+- 1 Rare (Scorch detects via flame intensity)
+
+**Fishing Mechanics:**
+- Active mode: cast with aim, tension-based reeling, catch resolution
+- Idle mode (stub): auto-cast, same tension mechanics, no aiming
+
+**Souls:**
+- 1 soul type (single visual/behavior)
+- Payment variants: full obol, partial obol, nothing
+- Single decay timer speed
+
+**Scorch:**
+- Proximity detection (flame intensity increases near rare fish)
+- No upgrades
+
+**Progression:**
+- Obols currency
+- Damned Merchant with 3-4 gear upgrades (rod, line, lures)
+
+**Session Feel:**
+- Fishing: quick catches, longer for fights (exact timing TBD via playtesting)
+- Ferrying: longer due to travel (exact timing TBD via playtesting)
+
+### NOT in MVP
+
+- Other 4 rivers (Styx, Lethe, Phlegethon, Cocytus)
+- Waterfall connectors
+- Multiple soul types
+- Alternative payments (gear from souls)
+- Hades route blocking
+- Legendary fish / multi-phase fights
 - Special guests
-- Full background events
-- Legendary fish
-- Full upgrade tree
-- Hades mood system
-- Complex route blockages
-- Full alternative payment catalog
+- Background events
+- Codex UI (track catches internally only)
+- Audio beyond placeholder
 
 ---
 
@@ -642,6 +736,10 @@ public enum PaymentType { FullObol, PartialObol, BarterItem, Nothing }
 | Jan 24, 2026 | Merchants accessible while ferrying | Risk/reward - soul timer keeps running during merchant visits |
 | Jan 24, 2026 | Flexible unlock progression | Connectors and entrances unlock independently, not linear |
 | Jan 24, 2026 | Route blocking = time pressure | Hades blocks routes to force longer paths, never fully traps player |
+| Jan 24, 2026 | MVP scope finalized | Acheron + Hub only, 10 fish, junction system, 1 soul type, merchant branch |
+| Jan 24, 2026 | Junction input = Up | Pressing up at junction takes alternate route (merchant, connectors) |
+| Jan 24, 2026 | Idle fishing = stub | Auto-cast only, same tension mechanics as active mode |
+| Jan 24, 2026 | Hub uses free movement | Not spline-locked, full WASD control, third-person camera behind/above |
 
 ---
 
@@ -724,13 +822,13 @@ After each work session, update this document:
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 9 | Jan 24, 2026 | Fixed coordinate system (camera at -Z looking +Z). Rebuilt greybox layout to match reference diagram. Added colored materials. Splines need tuning. |
+| 8 | Jan 24, 2026 | Finalized MVP scope: Acheron + Hub, 10 fish, junction/branch system, 1 soul type, idle stub. Reorganized TODOs by system. |
 | 7 | Jan 24, 2026 | Raft navigation: RaftController, FollowTarget, side-scrolling camera, input bindings, HOK_CodeReference.md |
 | 6 | Jan 24, 2026 | Map design: hub-and-spoke layout, waterfall connectors, pickup/drop-off docks, flexible unlock progression, merchant access during ferry |
 | 5 | Jan 23, 2026 | Bootstrap scene, GameManager with SOAP, input actions, folder structure |
 | 4 | Jan 23, 2026 | Unity project created, packages installed, GitHub repo established |
 | 3 | Jan 23, 2026 | Document restructuring - aligned with DLYH patterns and updated template |
-| 2 | Jan 6, 2026 | Integrated ferry mechanics (soul decay, river navigation, routing, alternative payments), expanded creatures, background events, Hollywood gag details, new data models |
-| 1 | Jan 5, 2026 | Initial consolidated document (replaces HC v2 4-doc set) |
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Purpose:** Quick reference for existing code, APIs, and conventions. Check this before writing new code to avoid referencing non-existent classes or methods.
 
-**Last Updated:** January 24, 2026
+**Last Updated:** January 24, 2026 (Coordinate system fix, layout rebuild)
 
 ---
 
@@ -109,7 +109,8 @@ follower.SetOffset(new Vector3(0f, 0.95f, 0f));
 **Dependencies:**
 - `Dreamteck.Splines.SplineComputer` - River path
 - `UnityEngine.InputSystem.InputValue` - Input handling
-- `Obvious.Soap.ScriptableEventNoParam` - Movement events (optional)
+- `Obvious.Soap.ScriptableEventNoParam` - Movement and junction events (optional)
+- `HOK.Ferry.SplineJunction` - Junction points for branching
 
 **Serialized Fields:**
 | Field | Type | Default | Description |
@@ -118,25 +119,34 @@ follower.SetOffset(new Vector3(0f, 0.95f, 0f));
 | `acceleration` | float | 3f | Acceleration rate |
 | `deceleration` | float | 5f | Deceleration rate |
 | `spline` | SplineComputer | null | River spline to follow |
+| `junctions` | List\<SplineJunction\> | empty | Junctions on current spline (auto-populated) |
 | `onRaftStartedMoving` | ScriptableEventNoParam | null | Event when movement begins |
 | `onRaftStoppedMoving` | ScriptableEventNoParam | null | Event when movement stops |
+| `onJunctionAvailable` | ScriptableEventNoParam | null | Event when entering junction range |
+| `onJunctionTaken` | ScriptableEventNoParam | null | Event when branching to new spline |
 
 **Public API:**
 | Member | Type | Description |
 |--------|------|-------------|
 | `IsMoving` | bool (property) | True if raft is moving |
 | `CurrentSpeed` | float (property) | Current movement speed |
+| `CurrentSpline` | SplineComputer (property) | The spline being followed |
+| `ActiveJunction` | SplineJunction (property) | Currently available junction (if any) |
+| `IsJunctionAvailable` | bool (property) | True if a junction can be taken |
 | `OnMove(InputValue)` | void | Called by PlayerInput (SendMessages) |
 | `SetMoveInput(Vector2)` | void | Direct input control |
 | `GetSplinePercent()` | double | Current position on spline (0-1) |
 | `SetSplinePercent(double)` | void | Teleport to spline position |
-| `SetSpline(SplineComputer)` | void | Assign new spline |
+| `SetSpline(SplineComputer)` | void | Assign new spline, refresh junctions |
+| `SetSpline(SplineComputer, double)` | void | Assign new spline at entry position |
 
 **Input Handling:**
 - Uses `PlayerInput` component with `SendMessages` behavior
 - Receives `OnMove(InputValue)` from Ferry action map
-- D/Right Arrow = positive X = move toward +Z (higher spline %)
-- A/Left Arrow = negative X = move toward -Z (lower spline %)
+- Camera at -Z looking toward +Z: +X=screen right, -X=screen left, +Z=screen top, -Z=screen bottom
+- A/Left Arrow = move toward dock (left, -X, higher spline %)
+- D/Right Arrow = move toward entrance (right, +X, lower spline %)
+- W/Up Arrow = take junction (if available)
 
 **Usage:**
 ```csharp
@@ -145,12 +155,67 @@ RaftController raft = GetComponent<RaftController>();
 // Check movement
 if (raft.IsMoving) { /* ... */ }
 
+// Check for available junction
+if (raft.IsJunctionAvailable)
+{
+    // Player can press Up to take the junction
+    SplineJunction junction = raft.ActiveJunction;
+}
+
 // Teleport to middle of river
 raft.SetSplinePercent(0.5);
 
-// Get current position
-double percent = raft.GetSplinePercent();
+// Switch to a different spline
+raft.SetSpline(otherSpline, 0.0); // Enter at start
 ```
+
+---
+
+#### SplineJunction.cs
+**Path:** `Assets/HOK/Scripts/Ferry/SplineJunction.cs`
+**Type:** MonoBehaviour
+
+**Purpose:** Marks a junction point on a spline where the raft can branch to an alternate route. Place on or under a GameObject with SplineComputer.
+
+**Serialized Fields:**
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `junctionPercent` | float | 0.5f | Position on source spline (0-1) |
+| `activationRange` | float | 0.05f | Range around junction for activation |
+| `targetSpline` | SplineComputer | null | Spline to switch to |
+| `targetEntryPercent` | float | 0f | Entry position on target spline |
+| `requiredDirection` | int | 0 | Required travel direction (-1, 0, 1) |
+| `indicatorObject` | GameObject | null | Visual indicator when available |
+| `isAvailable` | bool | true | Whether junction is usable |
+| `autoReturnAtStart` | bool | false | Auto-trigger when raft reaches percent 0 |
+
+**Public API:**
+| Member | Type | Description |
+|--------|------|-------------|
+| `SourceSpline` | SplineComputer (property) | The spline this junction belongs to |
+| `JunctionPercent` | float (property) | Position on source spline |
+| `ActivationRange` | float (property) | Detection range |
+| `TargetSpline` | SplineComputer (property) | Destination spline |
+| `TargetEntryPercent` | float (property) | Entry position on target |
+| `RequiredDirection` | int (property) | Required travel direction |
+| `IsAvailable` | bool (property) | Get/set availability |
+| `AutoReturnAtStart` | bool (property) | Whether junction auto-triggers at spline start |
+| `IsInRange(double, int)` | bool | Check if raft can use junction |
+| `UpdateIndicator(bool)` | void | Show/hide visual indicator |
+| `GetWorldPosition()` | Vector3 | World position of junction point |
+
+**Scene Setup:**
+1. Create SplineJunction as child of RiverSpline GameObject
+2. Set `junctionPercent` to position along river (e.g., 0.7 for 70%)
+3. Assign `targetSpline` to the branch spline
+4. Set `targetEntryPercent` (usually 0 for start of branch)
+5. Optionally assign `indicatorObject` for visual feedback
+6. For dead-end branches: set `autoReturnAtStart = true` on the return junction
+
+**Gizmos:**
+- Green sphere at junction point (red if unavailable)
+- Green line showing activation range
+- Yellow line/sphere showing connection to target spline
 
 ---
 
@@ -168,10 +233,12 @@ double percent = raft.GetSplinePercent();
 **Public API:**
 | Method | Description |
 |--------|-------------|
-| `InitializeRiverSpline(SplineComputer)` | Creates 5-point river along Z axis |
+| `InitializeRiverSpline(SplineComputer)` | Creates 5-point river along X axis |
+| `InitializeMerchantBranchSpline(SplineComputer)` | Creates 4-point branch toward upper-left |
 
 **Notes:**
-- Creates spline from Z=-18 to Z=+16
+- River spline: X=18 (entrance, right) to X=-17 (dock, left) at Z=2
+- Branch spline: X=-5,Z=5 (junction) to X=-17,Z=14 (merchant dock)
 - Y position is 0.3 (raft height above water)
 - Uses BSpline type with SmoothMirrored points
 
@@ -240,10 +307,23 @@ Acheron_Greybox
   ---ENVIRONMENT---
     WaterPlane
     RiverBed
-    LeftBank
-    RightBank
-    Dock
+    Dock (main river dead end, left)
     RiverSpline (SplineComputer)
+      Junction_ToMerchant
+    MerchantBranchSpline (SplineComputer)
+      Junction_ToRiver
+    MerchantArea/
+      MerchantDock
+      MerchantStall
+    BottomBank_Main
+    MainUpperBank_Right
+    MainUpperBank_Left
+    UpperMerchantBank_Diagonal
+    LowerMerchantBank_Diagonal
+    UpperMerchantBank
+    LowerMerchantBank
+    MainRiverDeadEndBank
+    BranchBank_DeadEndBank
   ---UNDERWATER---
   ---PLAYER---
     Raft (RaftController, PlayerInput)
@@ -256,13 +336,24 @@ Acheron_Greybox
 ```
 
 **Camera Setup:**
-- VCam_Navigation follows Raft with offset (15, 3, 0)
-- Camera at +X side, looking toward -X (Y rotation = 270)
-- +Z appears on right side of screen, -Z on left
+- VCam_Navigation follows Raft with offset (0, 10, -20)
+- Camera at -Z side, looking toward +Z (Y rotation = 0)
+- +X = screen right, -X = screen left, +Z = screen top, -Z = screen bottom
+
+**Coordinate System (CORRECT):**
+- Unity standard: +X=right, +Y=up, +Z=forward
+- Side-scroller view: camera at -Z looking toward +Z
+- River runs along X-axis: entrance (+X, right) to dock (-X, left)
+- Branch forks toward +Z (top of screen)
 
 **Character Offsets (from Raft):**
 - Kharon: (0, 0.95, 0)
 - Scorch: (0.8, 0.3, -0.8)
+
+**Materials:**
+- Bank_DarkGreen: All bank objects
+- Dock_LightBrown: Dock, MerchantDock, MerchantStall
+- Raft_Orange: Raft
 
 ---
 
