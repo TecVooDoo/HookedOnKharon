@@ -6,8 +6,8 @@
 **Platform:** Unity (Version TBD)
 **Source:** `E:\Unity\Hooked On Kharon`
 **Repository:** https://github.com/TecVooDoo/HookedOnKharon
-**Document Version:** 5
-**Last Updated:** January 23, 2026
+**Document Version:** 7
+**Last Updated:** January 24, 2026
 
 **Archive:** `HookedOnKharon_Status_Archive.md` - Historical designs, old version history, completed phase details (create when needed)
 
@@ -21,7 +21,7 @@
 
 **Current Phase:** Pre-Production
 
-**Last Session (Jan 23, 2026):** Bootstrap scene with GameManager using SOAP, input actions configured, folder structure created.
+**Last Session (Jan 24, 2026):** Implemented raft navigation - RaftController with spline-based movement, FollowTarget for Kharon/Scorch, side-scrolling camera setup, input bindings (WASD + arrows). Created HOK_CodeReference.md for architecture tracking.
 
 ---
 
@@ -50,8 +50,8 @@
 - [ ] Coordinate art asset list with Son
 
 ### Soon (Prototype)
-- [ ] Create prototype river scene (greybox Acheron)
-- [ ] Wire up input handling (PlayerInput component)
+- [x] Create prototype river scene (greybox Acheron)
+- [x] Wire up input handling (PlayerInput component)
 - [ ] Set up additional SOAP events/variables (fishing, ferry, currency)
 - [ ] Core fishing loop prototype
 - [ ] Kharon state transitions (On-Duty/Off-Duty)
@@ -88,6 +88,15 @@
 - Bootstrap scene with persistent GameManager
 - SOAP integration: CurrentGameState (IntVariable), OnGameStateChanged (ScriptableEventInt)
 - GameState enum and GameManager script in HOK.Core namespace
+
+**Raft Navigation (DONE):**
+- Acheron_Greybox scene with greybox environment (water, banks, dock)
+- RaftController with spline-based movement (Dreamteck Splines)
+- Side-scrolling camera setup (Cinemachine at +X, looking toward -X)
+- FollowTarget script for Kharon/Scorch (avoids scale inheritance from raft)
+- Input bindings: WASD + Arrow keys for ferry movement
+- SplineInitializer editor tool for river spline setup
+- HOK_CodeReference.md architecture document created
 
 ---
 
@@ -177,6 +186,9 @@ Assets/
 |--------|-------|---------|
 | GameManager.cs | 68 | Persistent singleton, SOAP state management |
 | GameState.cs | 14 | Game state enum (OffDuty, Fishing, Ferrying, InMenu) |
+| RaftController.cs | 184 | Spline-based raft movement with acceleration |
+| FollowTarget.cs | 47 | Follow target with offset (ExecuteAlways) |
+| SplineInitializer.cs | 74 | Editor tool for river spline setup |
 
 ### Dependencies / Packages (Installed)
 
@@ -240,9 +252,59 @@ Cozy fishing sim where you play as Kharon. Fish in peace until souls interrupt. 
 - Creates tension between fishing (relaxation) and ferrying (duty)
 
 **River Navigation:**
-- Hub-and-spoke with horizontal rivers and vertical connectors
-- Some connectors one-way (waterfall down)
-- Some connectors locked until gear requirements met
+- Hub-and-spoke layout: central lake with five rivers radiating outward
+- Each river has two-way access to/from the central hub
+- One-way waterfall connectors between adjacent rivers (clockwise flow only)
+- Waterfall order: Acheron -> Lethe -> Styx -> Cocytus -> Phlegethon
+- Connectors are shortcuts, not required paths - player can always return to hub via river exit
+
+**Map Layout:**
+- **Central Hub:** Dark lake with single drop-off dock (Gates of Hades approach)
+- **Rivers:** Five spokes, each with pickup docks along banks and merchant at far end
+- **Pickup Docks:** Souls spawn here, wait for Kharon
+- **Drop-off Dock:** Central hub only - all souls delivered here
+- **Merchants:** Accessible during ferry runs, but soul timer keeps running (risk/reward)
+
+**Route Blocking (Hades Mood System):**
+- Hades can block river entrances and/or waterfall connectors
+- Blocking forces longer alternate routes, pressures soul timer
+- Player can never be fully trapped - hub access always available via some path
+- Multiple simultaneous blocks create endgame routing challenges
+
+**Unlock Progression (Flexible):**
+- River entrances and waterfall connectors unlock independently
+- Player may unlock a connector before its river entrance (access via adjacent river)
+- Creates varied progression paths and replay value
+- Example: Unlock Acheron->Lethe connector before Lethe entrance = must enter Lethe via Acheron
+
+**Reference:** See `Reference Art/HOK_Art_SimpleMap.png` for visual layout
+
+### Camera System
+
+**2.5D Perspective with Dynamic Framing (Cast n' Chill inspired):**
+
+**Above Water (Ferry/Navigation Mode):**
+- Slight tilted angle from above - enough to see raft surface, Kharon, Scorch
+- Waterline near bottom of screen
+- Full view of background environment, docks, souls, river scenery
+- Gives spatial depth to the scene
+
+**Underwater (Fishing Mode):**
+- Camera shifts up AND flattens angle toward 2D side-view
+- Waterline at top of screen (or higher based on line depth)
+- Clear view of fish, fishing line, underwater environment
+- More readable for fishing gameplay
+
+**Transition:**
+- Smooth camera movement when casting/reeling
+- Vertical position + angle both animate between modes
+- Water plane acts as visual anchor point
+
+**Foreground Occlusion:**
+- Underwater rocks/obstacles in foreground fade to transparent
+- Triggers when fishing line or hooked fish are behind them
+- Player always has clear view of the catch
+- Shader-based with depth or distance check
 
 ### Scorch Proximity Detection
 
@@ -328,6 +390,34 @@ Soul arrives
             -> May spot rare fish (muttering)
               -> Deliver soul
                 -> Return to fishing spot
+```
+
+### Ferry Route Flow (Map Navigation)
+
+```
+Soul spawns at Pickup Dock (river spoke)
+  -> Soul timer starts
+    -> Kharon travels FROM hub TO that river
+      -> Picks up soul at dock
+        -> OPTIONAL: Detour to merchant (timer still running!)
+          -> Navigate back to hub (direct or via waterfall shortcuts)
+            -> Drop off at central Drop-off Dock
+              -> Soul proceeds to Gates of Hades
+                -> Kharon returns to fishing spot
+```
+
+**Routing Example (Blocked Paths):**
+```
+Blocked: Acheron entrance, Lethe entrance
+Soul waiting at Acheron dock
+
+Hub -> UP Phlegethon (open)
+  -> Waterfall -> Acheron (clockwise)
+    -> Pickup soul
+      -> Waterfall -> Lethe
+        -> Waterfall -> Styx
+          -> DOWN Styx to Hub
+            -> Drop off soul
 ```
 
 ---
@@ -498,10 +588,13 @@ public enum PaymentType { FullObol, PartialObol, BarterItem, Nothing }
 | Background event frequency | OPEN | Balance needed |
 | Ferry interruption rate | OPEN | Critical for feel |
 | Soul decay timer values | OPEN | Needs playtesting for feel |
-| Hub location specifics | OPEN | Near Judges? Palace? Both? |
+| Hub location specifics | DECIDED | Central lake = drop-off dock, approach to Gates of Hades |
 | Hades mood trigger frequency | OPEN | Daily? Per session? Random events? |
 | Lethe confusion mechanic details | OPEN | UI treatment for forgetting destination |
 | Alternative payment drop rates | OPEN | How often do souls offer gear vs. nothing? |
+| Merchant reaction to faded souls | OPEN | Different merchants react differently when soul fades mid-transaction? |
+| Phlegethon waterfall destination | OPEN | Does it loop back to Acheron or dead-end? |
+| Water level / tide system | IDEA | Unlocking rivers lowers water (permanent progression) and/or tides create temporary access windows (dynamic gameplay). Could explain why rivers are locked (flooded caves) and how Hades blocks routes (flood surges). Needs more thought. |
 
 ---
 
@@ -543,6 +636,12 @@ public enum PaymentType { FullObol, PartialObol, BarterItem, Nothing }
 | Jan 23, 2026 | uGUI for UI framework | Mature ecosystem, better asset support than UI Toolkit |
 | Jan 23, 2026 | SOAP for state management | Use installed assets first, decoupled event-driven architecture |
 | Jan 23, 2026 | HOK namespace prefix | Changed from HOC to HOK to match project folder |
+| Jan 24, 2026 | Hub-and-spoke map layout | Five rivers radiate from central hub, two-way river access, one-way waterfall shortcuts |
+| Jan 24, 2026 | Central hub = drop-off point | All souls delivered to single drop-off dock at central lake (Gates approach) |
+| Jan 24, 2026 | Clockwise waterfall flow | Connectors flow Acheron->Lethe->Styx->Cocytus->Phlegethon |
+| Jan 24, 2026 | Merchants accessible while ferrying | Risk/reward - soul timer keeps running during merchant visits |
+| Jan 24, 2026 | Flexible unlock progression | Connectors and entrances unlock independently, not linear |
+| Jan 24, 2026 | Route blocking = time pressure | Hades blocks routes to force longer paths, never fully traps player |
 
 ---
 
@@ -550,10 +649,12 @@ public enum PaymentType { FullObol, PartialObol, BarterItem, Nothing }
 
 | Document | Path | Purpose |
 |----------|------|---------|
+| **Code Reference** | `HOK_CodeReference.md` | **READ FIRST** - Namespaces, classes, APIs, SOAP assets |
 | Art Asset List | `HOC_Art_AssetList.md` | My tracking of art assets and priorities |
 | Art Production Brief | `HOC_Art_Animation_Production_Brief.md` | Art direction for Son's team |
 | River Styx Brief | `HOC_Art_MicroBrief_river_styx_background.md` | Example micro-brief |
 | Reference Art | `Reference Art/` folder | Visual references |
+| Simple Map Diagram | `Reference Art/HOK_Art_SimpleMap.png` | Hub-and-spoke layout with docks, merchants, connectors |
 | DLYH Status | `C:\Unity\DontLoseYourHead\Documents\DLYH_Status.md` | Working async multiplayer reference |
 
 ---
@@ -588,13 +689,14 @@ public enum PaymentType { FullObol, PartialObol, BarterItem, Nothing }
 
 ### Critical Protocols
 1. **Verify names exist** - search before referencing files/methods/classes
-2. **Step-by-step verification** - one step at a time, wait for confirmation
-3. **Read before editing** - always read files before modifying
-4. **ASCII only** - no smart quotes, em-dashes, or special characters
-5. **Validate after MCP edits** - run validate_script to catch syntax errors
-6. **Use E: drive path** - never worktree paths
-7. **Be direct** - give honest assessments, don't sugar-coat
-8. **Acknowledge gaps** - say explicitly when something is missing or unclear
+2. **Read HOK_CodeReference.md** - check existing APIs before writing new code
+3. **Step-by-step verification** - one step at a time, wait for confirmation
+4. **Read before editing** - always read files before modifying
+5. **ASCII only** - no smart quotes, em-dashes, or special characters
+6. **Validate after MCP edits** - run validate_script to catch syntax errors
+7. **Use E: drive path** - never worktree paths
+8. **Be direct** - give honest assessments, don't sugar-coat
+9. **Acknowledge gaps** - say explicitly when something is missing or unclear
 
 ---
 
@@ -614,6 +716,7 @@ After each work session, update this document:
 - [ ] Add new lessons to "Lessons Learned" if applicable
 - [ ] Increment version number in header
 - [ ] Archive old version history entries when needed (keep ~5-6 recent)
+- [ ] **Update HOK_CodeReference.md** if any scripts, SOAP assets, or input actions were added/changed
 
 ---
 
@@ -621,6 +724,8 @@ After each work session, update this document:
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 7 | Jan 24, 2026 | Raft navigation: RaftController, FollowTarget, side-scrolling camera, input bindings, HOK_CodeReference.md |
+| 6 | Jan 24, 2026 | Map design: hub-and-spoke layout, waterfall connectors, pickup/drop-off docks, flexible unlock progression, merchant access during ferry |
 | 5 | Jan 23, 2026 | Bootstrap scene, GameManager with SOAP, input actions, folder structure |
 | 4 | Jan 23, 2026 | Unity project created, packages installed, GitHub repo established |
 | 3 | Jan 23, 2026 | Document restructuring - aligned with DLYH patterns and updated template |

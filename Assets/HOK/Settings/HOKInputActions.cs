@@ -225,6 +225,15 @@ public partial class @HOKInputActions: IInputActionCollection2, IDisposable
             ""id"": ""b2c3d4e5-f6a7-8901-bcde-f23456789012"",
             ""actions"": [
                 {
+                    ""name"": ""Move"",
+                    ""type"": ""Value"",
+                    ""id"": ""11111111-aaaa-bbbb-cccc-ddddeeee0001"",
+                    ""expectedControlType"": ""Vector2"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
+                },
+                {
                     ""name"": ""Interact"",
                     ""type"": ""Button"",
                     ""id"": ""55555555-5555-5555-5555-555555555555"",
@@ -253,6 +262,127 @@ public partial class @HOKInputActions: IInputActionCollection2, IDisposable
                 }
             ],
             ""bindings"": [
+                {
+                    ""name"": ""WASD"",
+                    ""id"": ""11111111-aaaa-bbbb-cccc-ddddeeee0002"",
+                    ""path"": ""2DVector"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Move"",
+                    ""isComposite"": true,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": ""up"",
+                    ""id"": ""11111111-aaaa-bbbb-cccc-ddddeeee0003"",
+                    ""path"": ""<Keyboard>/w"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""KeyboardMouse"",
+                    ""action"": ""Move"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""down"",
+                    ""id"": ""11111111-aaaa-bbbb-cccc-ddddeeee0004"",
+                    ""path"": ""<Keyboard>/s"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""KeyboardMouse"",
+                    ""action"": ""Move"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""left"",
+                    ""id"": ""11111111-aaaa-bbbb-cccc-ddddeeee0005"",
+                    ""path"": ""<Keyboard>/a"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""KeyboardMouse"",
+                    ""action"": ""Move"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""right"",
+                    ""id"": ""11111111-aaaa-bbbb-cccc-ddddeeee0006"",
+                    ""path"": ""<Keyboard>/d"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""KeyboardMouse"",
+                    ""action"": ""Move"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""11111111-aaaa-bbbb-cccc-ddddeeee0007"",
+                    ""path"": ""<Gamepad>/leftStick"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Gamepad"",
+                    ""action"": ""Move"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": ""Arrows"",
+                    ""id"": ""11111111-aaaa-bbbb-cccc-ddddeeee0010"",
+                    ""path"": ""2DVector"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Move"",
+                    ""isComposite"": true,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": ""up"",
+                    ""id"": ""11111111-aaaa-bbbb-cccc-ddddeeee0011"",
+                    ""path"": ""<Keyboard>/upArrow"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""KeyboardMouse"",
+                    ""action"": ""Move"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""down"",
+                    ""id"": ""11111111-aaaa-bbbb-cccc-ddddeeee0012"",
+                    ""path"": ""<Keyboard>/downArrow"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""KeyboardMouse"",
+                    ""action"": ""Move"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""left"",
+                    ""id"": ""11111111-aaaa-bbbb-cccc-ddddeeee0013"",
+                    ""path"": ""<Keyboard>/leftArrow"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""KeyboardMouse"",
+                    ""action"": ""Move"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""right"",
+                    ""id"": ""11111111-aaaa-bbbb-cccc-ddddeeee0014"",
+                    ""path"": ""<Keyboard>/rightArrow"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""KeyboardMouse"",
+                    ""action"": ""Move"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
                 {
                     ""name"": """",
                     ""id"": ""12345678-1234-1234-1234-123456789012"",
@@ -613,6 +743,7 @@ public partial class @HOKInputActions: IInputActionCollection2, IDisposable
         m_Fishing_AimDirection = m_Fishing.FindAction("AimDirection", throwIfNotFound: true);
         // Ferry
         m_Ferry = asset.FindActionMap("Ferry", throwIfNotFound: true);
+        m_Ferry_Move = m_Ferry.FindAction("Move", throwIfNotFound: true);
         m_Ferry_Interact = m_Ferry.FindAction("Interact", throwIfNotFound: true);
         m_Ferry_AcceptPayment = m_Ferry.FindAction("AcceptPayment", throwIfNotFound: true);
         m_Ferry_RejectSoul = m_Ferry.FindAction("RejectSoul", throwIfNotFound: true);
@@ -833,6 +964,7 @@ public partial class @HOKInputActions: IInputActionCollection2, IDisposable
     // Ferry
     private readonly InputActionMap m_Ferry;
     private List<IFerryActions> m_FerryActionsCallbackInterfaces = new List<IFerryActions>();
+    private readonly InputAction m_Ferry_Move;
     private readonly InputAction m_Ferry_Interact;
     private readonly InputAction m_Ferry_AcceptPayment;
     private readonly InputAction m_Ferry_RejectSoul;
@@ -847,6 +979,10 @@ public partial class @HOKInputActions: IInputActionCollection2, IDisposable
         /// Construct a new instance of the input action map wrapper class.
         /// </summary>
         public FerryActions(@HOKInputActions wrapper) { m_Wrapper = wrapper; }
+        /// <summary>
+        /// Provides access to the underlying input action "Ferry/Move".
+        /// </summary>
+        public InputAction @Move => m_Wrapper.m_Ferry_Move;
         /// <summary>
         /// Provides access to the underlying input action "Ferry/Interact".
         /// </summary>
@@ -885,6 +1021,9 @@ public partial class @HOKInputActions: IInputActionCollection2, IDisposable
         {
             if (instance == null || m_Wrapper.m_FerryActionsCallbackInterfaces.Contains(instance)) return;
             m_Wrapper.m_FerryActionsCallbackInterfaces.Add(instance);
+            @Move.started += instance.OnMove;
+            @Move.performed += instance.OnMove;
+            @Move.canceled += instance.OnMove;
             @Interact.started += instance.OnInteract;
             @Interact.performed += instance.OnInteract;
             @Interact.canceled += instance.OnInteract;
@@ -905,6 +1044,9 @@ public partial class @HOKInputActions: IInputActionCollection2, IDisposable
         /// <seealso cref="FerryActions" />
         private void UnregisterCallbacks(IFerryActions instance)
         {
+            @Move.started -= instance.OnMove;
+            @Move.performed -= instance.OnMove;
+            @Move.canceled -= instance.OnMove;
             @Interact.started -= instance.OnInteract;
             @Interact.performed -= instance.OnInteract;
             @Interact.canceled -= instance.OnInteract;
@@ -1145,6 +1287,13 @@ public partial class @HOKInputActions: IInputActionCollection2, IDisposable
     /// <seealso cref="FerryActions.RemoveCallbacks(IFerryActions)" />
     public interface IFerryActions
     {
+        /// <summary>
+        /// Method invoked when associated input action "Move" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnMove(InputAction.CallbackContext context);
         /// <summary>
         /// Method invoked when associated input action "Interact" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
         /// </summary>
