@@ -6,7 +6,7 @@
 **Platform:** Unity (Version TBD)
 **Source:** `E:\Unity\Hooked On Kharon`
 **Repository:** https://github.com/TecVooDoo/HookedOnKharon
-**Document Version:** 4
+**Document Version:** 5
 **Last Updated:** January 23, 2026
 
 **Archive:** `HookedOnKharon_Status_Archive.md` - Historical designs, old version history, completed phase details (create when needed)
@@ -21,7 +21,7 @@
 
 **Current Phase:** Pre-Production
 
-**Last Session (Jan 23, 2026):** Unity project created, packages installed, GitHub repository established.
+**Last Session (Jan 23, 2026):** Bootstrap scene with GameManager using SOAP, input actions configured, folder structure created.
 
 ---
 
@@ -42,10 +42,17 @@
 - [x] Select Unity version (Unity 6 - 6000.0.x)
 - [x] Create Unity project structure at `E:\Unity\Hooked On Kharon`
 - [x] Install core packages
+- [x] Create folder structure under Assets/HOK
+- [x] Set up Input Actions (HOKInputActions.inputactions)
+- [x] Create Bootstrap scene with persistent GameManager
+- [x] Integrate SOAP for game state management
 - [ ] Define precise MVP scope
 - [ ] Coordinate art asset list with Son
 
 ### Soon (Prototype)
+- [ ] Create prototype river scene (greybox Acheron)
+- [ ] Wire up input handling (PlayerInput component)
+- [ ] Set up additional SOAP events/variables (fishing, ferry, currency)
 - [ ] Core fishing loop prototype
 - [ ] Kharon state transitions (On-Duty/Off-Duty)
 - [ ] Scorch proximity detection system
@@ -74,6 +81,13 @@
 - Art production brief for external team
 - Micro-brief template for individual assets
 - River Styx background micro-brief (example)
+
+**Infrastructure (DONE):**
+- Folder structure under Assets/HOK (Art, Audio, Data, Prefabs, Scenes, Scripts, UI)
+- Input Actions asset (HOKInputActions) with Fishing, Ferry, UI action maps
+- Bootstrap scene with persistent GameManager
+- SOAP integration: CurrentGameState (IntVariable), OnGameStateChanged (ScriptableEventInt)
+- GameState enum and GameManager script in HOK.Core namespace
 
 ---
 
@@ -109,18 +123,18 @@
 | UI Framework | uGUI | With Lean GUI + Text Animator |
 | Save System | Easy Save 3 | Binary serialization |
 
-### Namespaces (Planned)
+### Namespaces
 
 | Namespace | Purpose |
 |-----------|---------|
-| `HOC.Core` | Game state machine, managers |
-| `HOC.Fishing` | Cast, reel, catch systems |
-| `HOC.Ferry` | Soul transport, payment |
-| `HOC.Companion` | Scorch behavior |
-| `HOC.Progression` | Unlocks, currency, codex |
-| `HOC.UI` | Menus, HUD, codex display |
-| `HOC.Audio` | Music, SFX managers |
-| `HOC.Data` | ScriptableObject definitions |
+| `HOK.Core` | Game state machine, managers |
+| `HOK.Fishing` | Cast, reel, catch systems |
+| `HOK.Ferry` | Soul transport, payment |
+| `HOK.Companion` | Scorch behavior |
+| `HOK.Progression` | Unlocks, currency, codex |
+| `HOK.UI` | Menus, HUD, codex display |
+| `HOK.Audio` | Music, SFX managers |
+| `HOK.Data` | ScriptableObject definitions |
 
 ### Key Folders (Planned)
 
@@ -161,7 +175,8 @@ Assets/
 
 | Script | Lines | Purpose |
 |--------|-------|---------|
-| (none yet) | - | Planning phase |
+| GameManager.cs | 68 | Persistent singleton, SOAP state management |
+| GameState.cs | 14 | Game state enum (OffDuty, Fishing, Ferrying, InMenu) |
 
 ### Dependencies / Packages (Installed)
 
@@ -526,6 +541,8 @@ public enum PaymentType { FullObol, PartialObol, BarterItem, Nothing }
 | Jan 23, 2026 | Unity project created | Unity 6, URP 17.3.0, all core packages installed |
 | Jan 23, 2026 | GitHub repository | https://github.com/TecVooDoo/HookedOnKharon |
 | Jan 23, 2026 | uGUI for UI framework | Mature ecosystem, better asset support than UI Toolkit |
+| Jan 23, 2026 | SOAP for state management | Use installed assets first, decoupled event-driven architecture |
+| Jan 23, 2026 | HOK namespace prefix | Changed from HOC to HOK to match project folder |
 
 ---
 
@@ -604,6 +621,7 @@ After each work session, update this document:
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 5 | Jan 23, 2026 | Bootstrap scene, GameManager with SOAP, input actions, folder structure |
 | 4 | Jan 23, 2026 | Unity project created, packages installed, GitHub repo established |
 | 3 | Jan 23, 2026 | Document restructuring - aligned with DLYH patterns and updated template |
 | 2 | Jan 6, 2026 | Integrated ferry mechanics (soul decay, river navigation, routing, alternative payments), expanded creatures, background events, Hollywood gag details, new data models |

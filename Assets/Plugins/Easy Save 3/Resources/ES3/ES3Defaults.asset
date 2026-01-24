@@ -48,6 +48,7 @@ MonoBehaviour:
     - Febucci.TextAnimatorForUnity.TMP.Runtime
     - Febucci.TextAnimatorForUnity.UITk.Runtime
     - ImprovedTimers
+    - IngameDebugConsole.Runtime
     - LeanCommon
     - LeanGUI
     - LeanTransition
