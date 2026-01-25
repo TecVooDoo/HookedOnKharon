@@ -24,6 +24,12 @@ namespace HOK.Ferry
         [Tooltip("Starting position on spline (0-1). 0 = entrance (+X, right), 1 = dock (-X, left).")]
         [SerializeField] [Range(0f, 1f)] private float startingPercent = 0.1f;
 
+        [Tooltip("Minimum percent the raft can reach (prevents clipping at spline start).")]
+        [SerializeField] [Range(0f, 0.5f)] private float minPercent = 0.05f;
+
+        [Tooltip("Maximum percent the raft can reach (prevents clipping at spline end).")]
+        [SerializeField] [Range(0.5f, 1f)] private float maxPercent = 0.95f;
+
         [Header("Junction Settings")]
         [Tooltip("Junctions available on the current spline. Auto-populated if empty.")]
         [SerializeField] private List<SplineJunction> junctions = new List<SplineJunction>();
@@ -42,6 +48,7 @@ namespace HOK.Ferry
         private SplineJunction activeJunction;
         private bool junctionInputPressed;
         private SplineJunction autoReturnJunction;
+        private float junctionCooldown; // Prevents immediate auto-return after taking a junction
 
         private void Start()
         {
@@ -59,6 +66,12 @@ namespace HOK.Ferry
             if (spline == null)
             {
                 return;
+            }
+
+            // Decrement junction cooldown
+            if (junctionCooldown > 0f)
+            {
+                junctionCooldown -= Time.deltaTime;
             }
 
             UpdateSpeed();
@@ -138,16 +151,16 @@ namespace HOK.Ferry
                 float percentPerSecond = currentSpeed / splineLength;
                 currentPercent += percentPerSecond * Time.deltaTime;
 
-                // Check for auto-return at spline boundaries
-                if (currentPercent <= 0.0 && autoReturnJunction != null)
+                // Check for auto-return at spline boundaries (with cooldown to prevent immediate return after junction)
+                if (currentPercent <= minPercent && autoReturnJunction != null && junctionCooldown <= 0f)
                 {
                     // Hit start of spline with auto-return - take the junction
                     TakeJunction(autoReturnJunction, true);
                     return;
                 }
 
-                // Clamp to valid range
-                currentPercent = System.Math.Clamp(currentPercent, 0.0, 1.0);
+                // Clamp to valid range (accounting for raft length)
+                currentPercent = System.Math.Clamp(currentPercent, minPercent, maxPercent);
             }
 
             ApplySplinePosition();
@@ -186,6 +199,7 @@ namespace HOK.Ferry
 
         private void CheckJunctions()
         {
+            // When stationary, use 0 (any direction) for junction detection
             int travelDirection = currentSpeed > 0.01f ? 1 : (currentSpeed < -0.01f ? -1 : 0);
             SplineJunction newActiveJunction = null;
 
@@ -197,6 +211,17 @@ namespace HOK.Ferry
                 {
                     newActiveJunction = junction;
                     break;
+                }
+            }
+
+            // Keep active junction if we're stationary and still in range (ignore direction when stopped)
+            if (newActiveJunction == null && activeJunction != null && travelDirection == 0)
+            {
+                // Check if still in range without direction requirement
+                float distance = Mathf.Abs((float)currentPercent - activeJunction.JunctionPercent);
+                if (distance <= activeJunction.ActivationRange && activeJunction.TargetSpline != null)
+                {
+                    newActiveJunction = activeJunction;
                 }
             }
 
@@ -235,19 +260,20 @@ namespace HOK.Ferry
 
         /// <summary>
         /// Takes a junction, switching to the target spline.
+        /// Projects world position to find matching percent, but does NOT move the raft.
+        /// The raft stays exactly where it is; only the spline reference changes.
         /// </summary>
         /// <param name="junction">The junction to take</param>
-        /// <param name="preserveDirection">If true, maintains movement direction (for auto-return)</param>
-        private void TakeJunction(SplineJunction junction, bool preserveDirection)
+        /// <param name="isAutoReturn">If true, this is an auto-return at spline boundary</param>
+        private void TakeJunction(SplineJunction junction, bool isAutoReturn)
         {
             if (junction == null || junction.TargetSpline == null)
             {
                 return;
             }
 
-            // Transition to the new spline
-            SplineComputer targetSpline = junction.TargetSpline;
-            float targetPercent = junction.TargetEntryPercent;
+            // Store current world position before switching
+            Vector3 currentWorldPos = transform.position;
 
             // Clear current junction before switching
             if (activeJunction != null)
@@ -256,25 +282,28 @@ namespace HOK.Ferry
                 activeJunction = null;
             }
 
-            // Switch splines
+            // Switch to the new spline
+            SplineComputer targetSpline = junction.TargetSpline;
             spline = targetSpline;
-            currentPercent = targetPercent;
 
-            // Preserve movement direction if requested
-            // When moving "backward" (decreasing percent) on branch and auto-returning,
-            // we want to continue moving in the same world direction on the main river
-            if (preserveDirection && currentSpeed < 0f)
-            {
-                // We were moving toward percent 0 on the branch
-                // On the main river, we want to continue toward the dock (higher percent)
-                // So flip the speed to positive
-                currentSpeed = -currentSpeed;
-            }
+            // Project current world position onto the new spline to find the closest percent
+            // This determines where we are on the new spline's parameterization
+            SplineSample projectedSample = new SplineSample();
+            spline.Project(currentWorldPos, ref projectedSample);
+            currentPercent = projectedSample.percent;
 
-            ApplySplinePosition();
+            // Clamp to valid range
+            currentPercent = System.Math.Clamp(currentPercent, 0.0, 1.0);
+
+            // DO NOT call ApplySplinePosition() here!
+            // The raft stays exactly where it is - no teleport.
+            // Normal movement in Update() will smoothly move the raft along the new spline.
 
             // Refresh junctions for new spline
             RefreshJunctions();
+
+            // Set cooldown to prevent immediate auto-return (gives player time to move away from boundary)
+            junctionCooldown = 0.5f;
 
             if (onJunctionTaken != null)
             {
@@ -283,7 +312,7 @@ namespace HOK.Ferry
         }
 
         /// <summary>
-        /// Finds all SplineJunction components that reference this spline.
+        /// Finds all SplineJunction components that are children of the current spline.
         /// </summary>
         private void RefreshJunctions()
         {
@@ -296,19 +325,18 @@ namespace HOK.Ferry
             }
 
             // Find junctions on the spline GameObject and its children
+            // We check if they're children of this spline rather than relying on SourceSpline property
+            // because SourceSpline is set in Awake() which may not have run yet
             SplineJunction[] splineJunctions = spline.GetComponentsInChildren<SplineJunction>();
             for (int i = 0; i < splineJunctions.Length; i++)
             {
                 SplineJunction junction = splineJunctions[i];
-                if (junction.SourceSpline == spline)
-                {
-                    junctions.Add(junction);
+                junctions.Add(junction);
 
-                    // Track auto-return junction (should only be one per spline)
-                    if (junction.AutoReturnAtStart)
-                    {
-                        autoReturnJunction = junction;
-                    }
+                // Track auto-return junction (should only be one per spline)
+                if (junction.AutoReturnAtStart)
+                {
+                    autoReturnJunction = junction;
                 }
             }
         }
@@ -323,10 +351,11 @@ namespace HOK.Ferry
 
         /// <summary>
         /// Sets the raft position along the spline (0-1).
+        /// Respects min/max percent limits.
         /// </summary>
         public void SetSplinePercent(double percent)
         {
-            currentPercent = System.Math.Clamp(percent, 0.0, 1.0);
+            currentPercent = System.Math.Clamp(percent, minPercent, maxPercent);
             if (spline != null)
             {
                 ApplySplinePosition();
