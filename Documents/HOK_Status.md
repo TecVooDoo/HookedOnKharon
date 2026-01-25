@@ -6,7 +6,7 @@
 **Platform:** Unity (Version TBD)
 **Source:** `E:\Unity\Hooked On Kharon`
 **Repository:** https://github.com/TecVooDoo/HookedOnKharon
-**Document Version:** 9
+**Document Version:** 11
 **Last Updated:** January 24, 2026
 
 **Archive:** `HookedOnKharon_Status_Archive.md` - Historical designs, old version history, completed phase details (create when needed)
@@ -21,7 +21,7 @@
 
 **Current Phase:** Pre-Production
 
-**Last Session (Jan 24, 2026):** Fixed coordinate system - camera now at -Z looking toward +Z (standard Unity orientation). Rebuilt Acheron greybox layout to match reference diagram with Y-shaped river (main river + merchant branch). Added colored materials for visibility (banks=dark green, docks=light brown, raft=orange). Splines still need fine-tuning next session.
+**Last Session (Jan 24, 2026):** Created Central Hub scene with free movement (FreeMovementController), third-person camera (Cinemachine), and greybox layout. Positioned Kharon on cooler with Scorch hidden underneath. Hub has drop-off dock at +Z, river entrances around perimeter (Acheron at -Z, others as placeholders). Tank-style controls: W/S for forward/back, A/D for rotation. Ready for playtesting.
 
 ---
 
@@ -55,9 +55,9 @@
 - [x] Basic raft movement along spline
 - [x] Junction/branch system (up input to take alternate route)
 - [x] Merchant branch spline off Acheron
-- [ ] Central Hub scene (drop-off dock only)
-- [ ] Hub free movement (not spline-locked, full WASD)
-- [ ] Hub camera (third-person, behind/above, angled down)
+- [x] Central Hub scene (drop-off dock only)
+- [x] Hub free movement (tank controls: W/S forward/back, A/D rotate)
+- [x] Hub camera (third-person, behind/above, angled down)
 - [ ] Scene transitions between Acheron and Hub
 
 ### MVP Prototype - Fishing
@@ -142,13 +142,23 @@
 - Merchant branch spline off Acheron with greybox dock/stall
 - Junction_ToMerchant on main river spline
 - Junction_ToRiver at start of merchant branch (returns to main river)
+- Seamless junction transitions using world-space projection (no vertical teleport)
+- Auto-return junction support at spline boundaries (dead-end branches)
 
 **Greybox Layout (IN PROGRESS):**
 - Y-shaped river matching reference diagram
 - Main river: entrance (right, +X) to dock (left, -X)
 - Merchant branch: forks from junction toward upper-left (+Z, -X)
 - Banks: BottomBank_Main, MainUpperBank_Right, MainUpperBank_Left, diagonal banks, merchant area banks
-- Splines need fine-tuning to properly follow the channel paths
+- Spline junction points need alignment tweaking to eliminate minor forward offset during transitions
+
+**Central Hub Scene (DONE):**
+- FreeMovementController for tank-style free movement (W/S forward/back, A/D rotate)
+- Third-person Cinemachine camera following raft from behind/above
+- Greybox layout: WaterPlane, DropOffDock (+Z), 5 river entrances around perimeter
+- River entrances: Acheron (-Z), Styx (+X), Lethe (-X), Phlegethon (+X,-Z), Cocytus (-X,-Z)
+- Raft prefab instance with Kharon on cooler, Scorch hidden underneath
+- Kharon height gag: appears ~7ft on cooler, actually ~5'7" when off
 
 ---
 
@@ -238,7 +248,8 @@ Assets/
 |--------|-------|---------|
 | GameManager.cs | 68 | Persistent singleton, SOAP state management |
 | GameState.cs | 14 | Game state enum (OffDuty, Fishing, Ferrying, InMenu) |
-| RaftController.cs | ~250 | Spline-based raft movement with junction support |
+| RaftController.cs | ~395 | Spline-based raft movement with junction support, world-space transitions |
+| FreeMovementController.cs | ~155 | Tank-style free movement for Hub (W/S forward/back, A/D rotate) |
 | FollowTarget.cs | 47 | Follow target with offset (ExecuteAlways) |
 | SplineJunction.cs | ~140 | Marks branch points on splines for navigation |
 | SplineInitializer.cs | ~110 | Editor tool for river/branch spline setup |
@@ -822,6 +833,8 @@ After each work session, update this document:
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 11 | Jan 24, 2026 | Central Hub scene complete: FreeMovementController (tank controls), third-person camera, greybox layout with dock/river entrances. Kharon positioned on cooler with Scorch hidden. Ready for playtesting. |
+| 10 | Jan 24, 2026 | Fixed junction transitions: world-space projection for seamless spline switching, removed vertical teleport, fixed direction reversal bug. Minor forward offset remains (editor tweaking). |
 | 9 | Jan 24, 2026 | Fixed coordinate system (camera at -Z looking +Z). Rebuilt greybox layout to match reference diagram. Added colored materials. Splines need tuning. |
 | 8 | Jan 24, 2026 | Finalized MVP scope: Acheron + Hub, 10 fish, junction/branch system, 1 soul type, idle stub. Reorganized TODOs by system. |
 | 7 | Jan 24, 2026 | Raft navigation: RaftController, FollowTarget, side-scrolling camera, input bindings, HOK_CodeReference.md |

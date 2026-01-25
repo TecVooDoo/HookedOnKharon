@@ -2,7 +2,7 @@
 
 **Purpose:** Quick reference for existing code, APIs, and conventions. Check this before writing new code to avoid referencing non-existent classes or methods.
 
-**Last Updated:** January 24, 2026 (Coordinate system fix, layout rebuild)
+**Last Updated:** January 24, 2026 (Added FreeMovementController, Central Hub scene)
 
 ---
 
@@ -219,6 +219,59 @@ raft.SetSpline(otherSpline, 0.0); // Enter at start
 
 ---
 
+#### FreeMovementController.cs
+**Path:** `Assets/HOK/Scripts/Ferry/FreeMovementController.cs`
+**Type:** MonoBehaviour
+
+**Purpose:** Controls raft movement in free-navigation areas (Hub). Uses tank-style controls with direct world-space movement on the X-Z plane instead of spline sampling.
+
+**Serialized Fields:**
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `maxSpeed` | float | 5f | Maximum forward/back speed |
+| `acceleration` | float | 3f | Acceleration rate |
+| `deceleration` | float | 5f | Deceleration rate |
+| `rotationSpeed` | float | 55f | Rotation speed (degrees/sec) |
+| `waterLevel` | float | 0.3f | Fixed Y position for the raft |
+| `onRaftStartedMoving` | ScriptableEventNoParam | null | Event when movement begins |
+| `onRaftStoppedMoving` | ScriptableEventNoParam | null | Event when movement stops |
+
+**Public API:**
+| Member | Type | Description |
+|--------|------|-------------|
+| `IsMoving` | bool (property) | True if raft is moving or turning |
+| `CurrentSpeed` | float (property) | Current forward/back speed |
+| `CurrentVelocity` | Vector3 (property) | World-space velocity vector |
+| `OnMove(InputValue)` | void | Called by PlayerInput (SendMessages) |
+| `SetMoveInput(Vector2)` | void | Direct input control |
+| `SetPosition(Vector3)` | void | Set raft position directly |
+| `SetPosition(float x, float z)` | void | Set X-Z position, Y at water level |
+
+**Input Handling:**
+- Uses `PlayerInput` component with `SendMessages` behavior
+- **Tank-style controls** (different from river RaftController):
+  - W/Up Arrow = move forward (in raft's facing direction)
+  - S/Down Arrow = move backward
+  - A/Left Arrow = rotate left
+  - D/Right Arrow = rotate right
+- Movement is relative to raft's facing direction, not screen
+
+**Usage:**
+```csharp
+FreeMovementController raft = GetComponent<FreeMovementController>();
+
+// Check movement
+if (raft.IsMoving) { /* ... */ }
+
+// Get velocity
+Vector3 velocity = raft.CurrentVelocity;
+
+// Teleport raft
+raft.SetPosition(new Vector3(10f, 0.3f, 5f));
+```
+
+---
+
 ### HOK.Editor
 
 #### SplineInitializer.cs
@@ -354,6 +407,58 @@ Acheron_Greybox
 - Bank_DarkGreen: All bank objects
 - Dock_LightBrown: Dock, MerchantDock, MerchantStall
 - Raft_Orange: Raft
+
+---
+
+### Central_Hub Scene
+**Path:** `Assets/HOK/Scenes/Hubs/Central_Hub.unity`
+
+**Hierarchy:**
+```
+Central_Hub
+  Main Camera (CinemachineBrain)
+  Directional Light
+  ---ENVIRONMENT---
+    WaterPlane
+    DropOffDock (at +Z, north side)
+    RiverEntrance_Acheron (at -Z, south)
+    RiverEntrance_Styx (at +X, east)
+    RiverEntrance_Lethe (at -X, west)
+    RiverEntrance_Phlegethon (at +X, -Z, southeast)
+    RiverEntrance_Cocytus (at -X, -Z, southwest)
+  ---CAMERA---
+    VCam_Hub (CinemachineCamera, CinemachineFollow, CinemachineRotationComposer)
+  ---PLAYER---
+    Raft (FreeMovementController, PlayerInput)
+      Kharon_Placeholder (on cooler)
+      Scorch_Placeholder (hidden next to cooler)
+      Cooler_Placeholder
+```
+
+**Camera Setup:**
+- VCam_Hub follows Raft with offset (0, 2.5, -8)
+- Third-person behind/above view, looking at raft
+- CinemachineFollow with LockToTargetWithWorldUp binding mode
+- CinemachineRotationComposer for smooth look-at
+
+**Character Layout (on Raft):**
+- Cooler: local pos (-0.28, 1.25, 0.3), scale (0.3, 1.5, 0.071)
+- Kharon: local pos (-0.28, 4.62, 0.3), scale (0.17, 2.6, 0.06) - standing ON cooler
+- Scorch: local pos (-0.08, 1, 0.3), scale (0.16, 1, 0.0714286) - curled up next to cooler
+- Height gag: Kharon appears ~7ft tall on cooler, actually ~5'7" when off
+
+**Movement:**
+- Uses FreeMovementController (tank controls)
+- W/S = forward/back in raft's facing direction
+- A/D = rotate left/right
+- Not spline-locked like river scenes
+
+**River Entrances (placeholders):**
+- Acheron: (0, 0.5, -45) - south, active for MVP
+- Styx: (45, 0.5, 0) - east
+- Lethe: (-45, 0.5, 0) - west
+- Phlegethon: (32, 0.5, -32) - southeast
+- Cocytus: (-32, 0.5, -32) - southwest
 
 ---
 
