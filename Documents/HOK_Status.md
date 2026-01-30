@@ -6,8 +6,8 @@
 **Platform:** Unity (Version TBD)
 **Source:** `E:\Unity\Hooked On Kharon`
 **Repository:** https://github.com/TecVooDoo/HookedOnKharon
-**Document Version:** 15
-**Last Updated:** January 29, 2026
+**Document Version:** 16
+**Last Updated:** January 30, 2026
 
 **Archive:** `HookedOnKharon_Status_Archive.md` - Historical designs, old version history, completed phase details (create when needed)
 
@@ -21,7 +21,7 @@
 
 **Current Phase:** Pre-Production
 
-**Last Session (Jan 29, 2026):** Created unified PlayerMovementController combining RaftController and FreeMovementController. Separate speed settings for Hub (fast) vs River (slow). Raft rotates to follow spline direction. Auto-detects main river spline via "MainRiver" tag. Scene transitions working both directions (Hub ↔ Acheron). SceneTransitionManager now a prefab in every scene for easier testing.
+**Last Session (Jan 30, 2026):** Fixed junction system - junctions now work repeatedly (was stuck after first use due to input tracking bug). Removed takeJunctionPressed tracking, simplified to cooldown-based spam prevention. Fixed Junction_ToRiver position (was at dock end 0.95, now at split point 0.05). Cleaned up excessive debug logging.
 
 ---
 
@@ -180,9 +180,7 @@
 - Art pipeline with Son not yet established
 
 **Junction System:**
-- Junction activation requires raft to be moving; cannot take junction while stationary (indicator shows but up input doesn't trigger)
-- Merchant branch junction not triggering (indicator shows, but no spline switch occurs)
-- Auto-return from merchant branch to main river not working
+- (All previous issues resolved)
 
 **Design Gaps:**
 - Fish species count not finalized (50+ target)
@@ -855,6 +853,7 @@ After each work session, update this document:
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 16 | Jan 30, 2026 | Fixed junction system: removed takeJunctionPressed tracking (was causing one-time-only bug), simplified to cooldown-based prevention. Fixed Junction_ToRiver position from 0.95 to 0.05. Junctions now work repeatedly. |
 | 15 | Jan 29, 2026 | Unified PlayerMovementController (Free + Spline modes). Separate Hub/River speeds. Spline rotation following. Auto-detect MainRiver tag. Scene transitions working both directions. Junction system needs fixing (next session). |
 | 14 | Jan 29, 2026 | Scene transitions implemented: SceneTransitionManager, RiverExit, RiverEntrance completion. Auto input map switching. MVP Navigation section complete. |
 | 13 | Jan 27, 2026 | Updated troubleshooting docs to DLYH format. Created HOK_Troubleshooting_Archive.md. Fixed HOK_CodeReference.md formatting. Validated code against docs, removed incorrect min/max percent references. |

@@ -130,7 +130,7 @@ PrefabInstance:
     - target: {fileID: 1032624192239411385, guid: d029df27da4ccee42a05a7f2388f055f, type: 3}
       propertyPath: m_Material
       value: 
-      objectReference: {fileID: 1325068834}
+      objectReference: {fileID: 816895514}
     - target: {fileID: 1976391868962945183, guid: d029df27da4ccee42a05a7f2388f055f, type: 3}
       propertyPath: m_Name
       value: ---PLAYER---
@@ -230,12 +230,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5e93d1363dccd73479d75246c53afaa4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HOK.Ferry.SplineJunction
-  junctionPercent: 0
+  junctionPercent: 0.05
   activationRange: 0.05
   targetSpline: {fileID: 648975856}
   targetEntryPercent: 0.25
   requiredDirection: 0
-  requiresButtonPress: 1
+  requiresButtonPress: 0
   indicatorObject: {fileID: 951027176}
   isAvailable: 1
   autoReturnAtStart: 1
@@ -1566,6 +1566,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 775019820}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!134 &816895514
+PhysicsMaterial:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: ' (Instance) (Instance)'
+  serializedVersion: 2
+  m_DynamicFriction: 0.6
+  m_StaticFriction: 0.6
+  m_Bounciness: 0
+  m_FrictionCombine: 0
+  m_BounceCombine: 0
 --- !u!1 &951027176
 GameObject:
   m_ObjectHideFlags: 0
@@ -2738,19 +2751,19 @@ MonoBehaviour:
       tangent: {x: 9.666754, y: -0.3, z: -0.07763672}
       tangent2: {x: -10.333246, y: 0.3, z: 17.922363}
     - _type: 0
-      position: {x: -8.708935, y: 0, z: 12.229004}
+      position: {x: -6.237272, y: 0, z: 12.736225}
       color: {r: 1, g: 1, b: 1, a: 1}
       normal: {x: 0, y: 0, z: 1}
       size: 1
-      tangent: {x: 6.291065, y: -0.3, z: 0.2290039}
-      tangent2: {x: -23.70892, y: 0.3, z: 24.229004}
+      tangent: {x: 8.762728, y: -0.3, z: 0.7362251}
+      tangent2: {x: -21.237259, y: 0.3, z: 24.736225}
     - _type: 0
-      position: {x: -15.34151, y: 0.00016784668, z: 11.708206}
+      position: {x: -14.839977, y: 0, z: 12.456384}
       color: {r: 1, g: 1, b: 1, a: 1}
       normal: {x: 0, y: 0, z: 1}
       size: 1
-      tangent: {x: 1.6584902, y: -0.29983217, z: -2.2917938}
-      tangent2: {x: -32.341507, y: 0.30016786, z: 25.708206}
+      tangent: {x: 2.1600227, y: -0.3, z: -1.5436163}
+      tangent2: {x: -31.839973, y: 0.29999995, z: 26.456383}
     type: 3
     linearAverageDirection: 1
     customValueInterpolation:
@@ -2802,36 +2815,23 @@ MonoBehaviour:
     percent: 0
   - position: {x: -0.3332428, y: 0, z: 8.922363}
     up: {x: 0, y: 0, z: 1}
-    forward: {x: -0.8158054, y: 0, z: 0.57832646}
+    forward: {x: -0.7548028, y: 0, z: 0.6559518}
     color: {r: 1, g: 1, b: 1, a: 1}
     size: 1
     percent: 0.3333333333333333
-  - position: {x: -8.708935, y: 0, z: 12.229004}
+  - position: {x: -6.237272, y: 0, z: 12.736225}
     up: {x: 0, y: 0, z: 1}
-    forward: {x: -0.9889462, y: 0.000012947059, z: 0.14827456}
+    forward: {x: -0.96363425, y: 0, z: 0.26722452}
     color: {r: 1, g: 1, b: 1, a: 1}
     size: 1
     percent: 0.6666666666666666
-  - position: {x: -15.34151, y: 0.00016784668, z: 11.708206}
+  - position: {x: -14.839977, y: 0, z: 12.456384}
     up: {x: 0, y: 0, z: 1}
-    forward: {x: -0.99693143, y: 0.000025228757, z: -0.07828025}
+    forward: {x: -0.99947137, y: 0, z: -0.032512274}
     color: {r: 1, g: 1, b: 1, a: 1}
     size: 1
     percent: 1
   _nodes: []
---- !u!134 &1325068834
-PhysicsMaterial:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: ' (Instance)'
-  serializedVersion: 2
-  m_DynamicFriction: 0.6
-  m_StaticFriction: 0.6
-  m_Bounciness: 0
-  m_FrictionCombine: 0
-  m_BounceCombine: 0
 --- !u!1 &1422079679
 GameObject:
   m_ObjectHideFlags: 0

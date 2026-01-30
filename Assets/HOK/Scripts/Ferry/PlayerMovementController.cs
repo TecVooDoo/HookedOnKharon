@@ -69,7 +69,6 @@ namespace HOK.Ferry
         // Spline-specific state
         private double currentPercent;
         private SplineJunction activeJunction;
-        private bool takeJunctionPressed;
         private SplineJunction pendingManualJunction;
         private float junctionCooldown;
 
@@ -254,12 +253,11 @@ namespace HOK.Ferry
         {
             if (currentMode != MovementMode.Spline) return;
 
-            bool pressed = value.isPressed;
-            if (pressed && !takeJunctionPressed)
+            // Simply call ArmManualJunction on any press - the cooldown prevents double-triggering
+            if (value.isPressed)
             {
                 ArmManualJunction();
             }
-            takeJunctionPressed = pressed;
         }
 
         /// <summary>
@@ -276,12 +274,10 @@ namespace HOK.Ferry
         public void SetTakeJunctionPressed(bool pressed)
         {
             if (currentMode != MovementMode.Spline) return;
-
-            if (pressed && !takeJunctionPressed)
+            if (pressed)
             {
                 ArmManualJunction();
             }
-            takeJunctionPressed = pressed;
         }
 
         #endregion
@@ -512,13 +508,13 @@ namespace HOK.Ferry
         {
             if (activeJunction == null || activeJunction.TargetSpline == null) return;
             if (!activeJunction.RequiresButtonPress) return;
+            if (junctionCooldown > 0f) return; // Prevent spam during cooldown
 
             pendingManualJunction = activeJunction;
 
-            if (Mathf.Abs(currentSpeed) > 0.01f || Mathf.Abs(moveInput.x) > 0.1f)
-            {
-                TryConsumePendingManualJunction(forceImmediate: true);
-            }
+            // Always try to take the junction immediately when button is pressed.
+            // This allows taking junctions while stationary.
+            TryConsumePendingManualJunction(forceImmediate: true);
         }
 
         private void TryConsumePendingManualJunction(bool forceImmediate = false)
@@ -548,6 +544,8 @@ namespace HOK.Ferry
         {
             if (junction == null || junction.TargetSpline == null) return;
 
+            Debug.Log($"[Junction] {junction.name} -> {junction.TargetSpline.name}");
+
             Vector3 currentWorldPos = transform.position;
 
             if (activeJunction != null)
@@ -563,13 +561,17 @@ namespace HOK.Ferry
             currentPercent = System.Math.Clamp(projectedSample.percent, 0.0, 1.0);
 
             RefreshJunctions();
-            junctionCooldown = 0.5f;
+            junctionCooldown = 1.5f;
             onJunctionTaken?.Raise();
         }
 
         private void RefreshJunctions()
         {
-            if (spline == null) return;
+            if (spline == null)
+            {
+                Debug.LogWarning("[PlayerMovementController] RefreshJunctions called but spline is null.");
+                return;
+            }
 
             if (junctions == null)
             {
@@ -577,7 +579,8 @@ namespace HOK.Ferry
             }
 
             junctions.Clear();
-            junctions.AddRange(spline.GetComponentsInChildren<SplineJunction>());
+            SplineJunction[] foundJunctions = spline.GetComponentsInChildren<SplineJunction>();
+            junctions.AddRange(foundJunctions);
         }
 
         #endregion
