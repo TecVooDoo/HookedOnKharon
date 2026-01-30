@@ -1,8 +1,8 @@
 # Hooked on Kharon - Code Reference
 
-**Purpose:** Quick reference for existing code, APIs, and conventions. Check this before writing new code to avoid referencing non-existent classes or methods.
+Purpose: Quick reference for existing code, APIs, and conventions. Check this before writing new code to avoid referencing non-existent classes or methods.
 
-**Last Updated:** January 24, 2026 (Added FreeMovementController, Central Hub scene)
+Last Updated: 2026-01-29
 
 ---
 
@@ -10,15 +10,15 @@
 
 | Namespace | Purpose | Status |
 |-----------|---------|--------|
-| `HOK.Core` | Game state, managers, shared utilities | Active |
-| `HOK.Ferry` | Raft movement, soul transport | Active |
-| `HOK.Fishing` | Cast, reel, catch systems | Planned |
-| `HOK.Companion` | Scorch behavior | Planned |
-| `HOK.Progression` | Unlocks, currency, codex | Planned |
-| `HOK.UI` | Menus, HUD, codex display | Planned |
-| `HOK.Audio` | Music, SFX managers | Planned |
-| `HOK.Data` | ScriptableObject definitions | Planned |
-| `HOK.Editor` | Editor utilities, tools | Active |
+| HOK.Core | Game state, managers, shared utilities | Active |
+| HOK.Ferry | Raft movement, soul transport | Active |
+| HOK.Fishing | Cast, reel, catch systems | Planned |
+| HOK.Companion | Scorch behavior | Planned |
+| HOK.Progression | Unlocks, currency, codex | Planned |
+| HOK.UI | Menus, HUD, codex display | Planned |
+| HOK.Audio | Music, SFX managers | Planned |
+| HOK.Data | ScriptableObject definitions | Planned |
+| HOK.Editor | Editor utilities, tools | Active |
 
 ---
 
@@ -27,6 +27,7 @@
 ### HOK.Core
 
 #### GameState.cs
+
 **Path:** `Assets/HOK/Scripts/Core/GameState.cs`
 **Type:** Enum
 
@@ -43,6 +44,7 @@ public enum GameState
 ---
 
 #### GameManager.cs
+
 **Path:** `Assets/HOK/Scripts/Core/GameManager.cs`
 **Type:** MonoBehaviour (Singleton, DontDestroyOnLoad)
 
@@ -51,42 +53,106 @@ public enum GameState
 - `Obvious.Soap.ScriptableEventInt` - OnGameStateChanged
 
 **Public API:**
+
 | Member | Type | Description |
 |--------|------|-------------|
-| `Instance` | static GameManager | Singleton instance |
-| `CurrentState` | GameState (property) | Current game state from SOAP variable |
-| `SetState(GameState)` | void | Changes state, raises event |
+| Instance | static GameManager | Singleton instance |
+| CurrentState | GameState (property) | Current game state from SOAP variable |
+| SetState(GameState) | void | Changes state, raises event |
 
 **Usage:**
-```csharp
-// Get current state
-GameState state = GameManager.Instance.CurrentState;
 
-// Change state
+```csharp
+GameState state = GameManager.Instance.CurrentState;
 GameManager.Instance.SetState(GameState.Ferrying);
 ```
 
 ---
 
-#### FollowTarget.cs
-**Path:** `Assets/HOK/Scripts/Core/FollowTarget.cs`
-**Type:** MonoBehaviour
-**Attributes:** `[ExecuteAlways]`
+#### SceneTransitionManager.cs
+
+**Path:** `Assets/HOK/Scripts/Core/SceneTransitionManager.cs`
+**Type:** MonoBehaviour (Singleton, DontDestroyOnLoad)
+
+**Purpose:**
+Manages scene transitions between rivers and the hub. Coordinates raft spawning position, movement mode switching, and input action map switching.
+
+**Dependencies:**
+- `HOK.Ferry.RiverType`
+- `HOK.Ferry.PlayerMovementController`
+- `Dreamteck.Splines.SplineComputer`
+- `UnityEngine.InputSystem.PlayerInput`
+- `UnityEngine.SceneManagement`
 
 **Serialized Fields:**
+
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `target` | Transform | null | Transform to follow |
-| `offset` | Vector3 | (0, 0.5, 0) | Position offset from target |
-| `followRotation` | bool | false | Match target rotation |
+| hubSceneName | string | "Central_Hub" | Name of the hub scene |
+| transitionDelay | float | 0.2f | Delay before loading (for fade effects) |
+| ferryActionMap | string | "Ferry" | Action map for river scenes |
+| hubActionMap | string | "Hub" | Action map for hub scene |
 
 **Public API:**
-| Method | Description |
-|--------|-------------|
-| `SetTarget(Transform)` | Sets the follow target |
-| `SetOffset(Vector3)` | Sets the position offset |
+
+| Member | Type | Description |
+|--------|------|-------------|
+| Instance | static SceneTransitionManager | Singleton instance |
+| HubSceneName | string (property) | Gets hub scene name |
+| IsTransitioning | bool (property) | True during scene load |
+| TransitionToHub(RiverType, Vector3, float) | void | Load hub at specified position/rotation |
+| TransitionToRiver(RiverType, string, float) | void | Load river scene at spline percent |
 
 **Usage:**
+
+```csharp
+// From river exit (RiverExit component)
+SceneTransitionManager.Instance.TransitionToHub(
+    RiverType.Acheron,
+    new Vector3(0, 0, -10),  // Hub spawn position
+    180f                      // Facing direction
+);
+
+// From hub entrance (RiverEntrance component)
+SceneTransitionManager.Instance.TransitionToRiver(
+    RiverType.Acheron,
+    "Acheron_Greybox",
+    0.0f  // Spawn at river entrance/mouth
+);
+```
+
+**Notes:**
+- Create as prefab and place in every scene (singleton pattern handles duplicates)
+- Automatically switches input action maps based on scene type
+- Automatically switches PlayerMovementController mode (Free for Hub, Spline for Rivers)
+- Stores spawn data before load, applies after scene loaded
+- Finds SplineComputer in scene and assigns to PlayerMovementController on river spawn
+
+---
+
+#### FollowTarget.cs
+
+**Path:** `Assets/HOK/Scripts/Core/FollowTarget.cs`
+**Type:** MonoBehaviour
+**Attributes:** ExecuteAlways
+
+**Serialized Fields:**
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| target | Transform | null | Transform to follow |
+| offset | Vector3 | (0, 0.5, 0) | Position offset from target |
+| followRotation | bool | false | Match target rotation |
+
+**Public API:**
+
+| Method | Description |
+|--------|-------------|
+| SetTarget(Transform) | Sets the follow target |
+| SetOffset(Vector3) | Sets the position offset |
+
+**Usage:**
+
 ```csharp
 FollowTarget follower = GetComponent<FollowTarget>();
 follower.SetTarget(raftTransform);
@@ -94,200 +160,403 @@ follower.SetOffset(new Vector3(0f, 0.95f, 0f));
 ```
 
 **Notes:**
-- Runs in both Edit and Play mode due to `[ExecuteAlways]`
-- Updates position in `LateUpdate()` to run after target moves
+- Runs in both Edit and Play mode due to ExecuteAlways
+- Updates in LateUpdate to run after target moves
 - Used for Kharon/Scorch to follow raft without inheriting scale
 
 ---
 
 ### HOK.Ferry
 
+#### RiverType.cs (Enum)
+
+**Path:** `Assets/HOK/Scripts/Ferry/RiverEntrance.cs` (defined in same file)
+**Type:** Enum
+
+```csharp
+public enum RiverType
+{
+    Acheron,    // Pain/Woe - Beginner
+    Styx,       // Hate - Early
+    Lethe,      // Forgetfulness - Mid
+    Phlegethon, // Fire - Advanced
+    Cocytus     // Lamentation - Endgame
+}
+```
+
+---
+
 #### RaftController.cs
+
 **Path:** `Assets/HOK/Scripts/Ferry/RaftController.cs`
 **Type:** MonoBehaviour
 
+**Purpose:**
+- Moves the raft along a Dreamteck SplineComputer (river spline)
+- Supports spline junctions for branching to merchant splines
+- Manual branch: button press while in range; if stopped, next move occurs on branch
+- Auto return: junctions configured as auto (RequiresButtonPress == false) trigger automatically while moving
+
 **Dependencies:**
-- `Dreamteck.Splines.SplineComputer` - River path
-- `UnityEngine.InputSystem.InputValue` - Input handling
-- `Obvious.Soap.ScriptableEventNoParam` - Movement and junction events (optional)
-- `HOK.Ferry.SplineJunction` - Junction points for branching
+- `Dreamteck.Splines.SplineComputer`
+- `UnityEngine.InputSystem.InputValue`
+- `Obvious.Soap.ScriptableEventNoParam` (optional)
+- `HOK.Ferry.SplineJunction`
 
 **Serialized Fields:**
+
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `maxSpeed` | float | 5f | Maximum movement speed |
-| `acceleration` | float | 3f | Acceleration rate |
-| `deceleration` | float | 5f | Deceleration rate |
-| `spline` | SplineComputer | null | River spline to follow |
-| `junctions` | List\<SplineJunction\> | empty | Junctions on current spline (auto-populated) |
-| `onRaftStartedMoving` | ScriptableEventNoParam | null | Event when movement begins |
-| `onRaftStoppedMoving` | ScriptableEventNoParam | null | Event when movement stops |
-| `onJunctionAvailable` | ScriptableEventNoParam | null | Event when entering junction range |
-| `onJunctionTaken` | ScriptableEventNoParam | null | Event when branching to new spline |
+| maxSpeed | float | 5f | Maximum movement speed |
+| acceleration | float | 3f | Acceleration rate |
+| deceleration | float | 5f | Deceleration rate |
+| spline | SplineComputer | null | River spline to follow |
+| startingPercent | double | 0.5 | Starting spline percent |
+| junctions | List\<SplineJunction\> | empty | Junctions on current spline (auto-populated) |
+| onRaftStartedMoving | ScriptableEventNoParam | null | Event when movement begins |
+| onRaftStoppedMoving | ScriptableEventNoParam | null | Event when movement stops |
+| onJunctionAvailable | ScriptableEventNoParam | null | Event when entering junction range |
+| onJunctionTaken | ScriptableEventNoParam | null | Event when taking a junction |
 
 **Public API:**
+
 | Member | Type | Description |
 |--------|------|-------------|
-| `IsMoving` | bool (property) | True if raft is moving |
-| `CurrentSpeed` | float (property) | Current movement speed |
-| `CurrentSpline` | SplineComputer (property) | The spline being followed |
-| `ActiveJunction` | SplineJunction (property) | Currently available junction (if any) |
-| `IsJunctionAvailable` | bool (property) | True if a junction can be taken |
-| `OnMove(InputValue)` | void | Called by PlayerInput (SendMessages) |
-| `SetMoveInput(Vector2)` | void | Direct input control |
-| `GetSplinePercent()` | double | Current position on spline (0-1) |
-| `SetSplinePercent(double)` | void | Teleport to spline position |
-| `SetSpline(SplineComputer)` | void | Assign new spline, refresh junctions |
-| `SetSpline(SplineComputer, double)` | void | Assign new spline at entry position |
+| IsMoving | bool (property) | True if raft is moving |
+| CurrentSpeed | float (property) | Current movement speed |
+| CurrentSpline | SplineComputer (property) | The spline being followed |
+| ActiveJunction | SplineJunction (property) | Junction currently in range (if any) |
+| IsJunctionAvailable | bool (property) | True if a junction is currently available |
+| OnMove(InputValue) | void | PlayerInput callback: sets Move vector |
+| OnTakeJunction(InputValue) | void | PlayerInput callback: manual junction activation |
+| SetMoveInput(Vector2) | void | Direct movement input setter |
+| SetTakeJunctionPressed(bool) | void | Manual activation hook (tests / non-InputValue use) |
+| GetSplinePercent() | double | Current position on spline (0-1) |
+| SetSplinePercent(double) | void | Teleport to spline percent |
+| SetSpline(SplineComputer) | void | Assign new spline and refresh junctions |
+| SetSpline(SplineComputer, double) | void | Assign new spline at entry percent |
 
-**Input Handling:**
-- Uses `PlayerInput` component with `SendMessages` behavior
-- Receives `OnMove(InputValue)` from Ferry action map
-- Camera at -Z looking toward +Z: +X=screen right, -X=screen left, +Z=screen top, -Z=screen bottom
-- A/Left Arrow = move toward dock (left, -X, higher spline %)
-- D/Right Arrow = move toward entrance (right, +X, lower spline %)
-- W/Up Arrow = take junction (if available)
+**Input Handling (Authoritative):**
+
+Uses PlayerInput with SendMessages or UnityEvents. Movement and junction selection are intentionally decoupled.
+
+**Ferry Action Map (expected):**
+
+**Move (Vector2):**
+- Controls raft movement along spline only
+- Camera at -Z looking toward +Z: +X is screen right, -X is screen left
+- A / Left Arrow: move toward dock (left, higher spline %)
+- D / Right Arrow: move toward entrance (right, lower spline %)
+
+**TakeJunction (Button):**
+- Manual branch activation
+- Press while in range to arm the branch
+- If stopped: next movement occurs on branch
+- If moving: junction is taken immediately
+
+**Automatic Junctions:**
+
+Junctions with `RequiresButtonPress == false` are auto-taken when:
+- Raft is moving (or move intent exists), and
+- Cooldown is clear
+
+Used for merchant -> main river return. Cooldown prevents ping-pong.
 
 **Usage:**
+
 ```csharp
 RaftController raft = GetComponent<RaftController>();
 
-// Check movement
-if (raft.IsMoving) { /* ... */ }
+if (raft.IsMoving)
+{
+    // ...
+}
 
-// Check for available junction
 if (raft.IsJunctionAvailable)
 {
-    // Player can press Up to take the junction
     SplineJunction junction = raft.ActiveJunction;
 }
 
-// Teleport to middle of river
 raft.SetSplinePercent(0.5);
-
-// Switch to a different spline
-raft.SetSpline(otherSpline, 0.0); // Enter at start
+raft.SetSpline(otherSpline, 0.0);
 ```
+
+**Notes:**
+- Junction discovery uses `GetComponentsInChildren<SplineJunction>()` on the active spline
+- Authoring rule for MVP: SplineJunction objects must be children of their source SplineComputer
+- Junction switching projects current world position onto target spline to find entry percent
+- `targetEntryPercent` exists on SplineJunction but is currently unused by RaftController
 
 ---
 
 #### SplineJunction.cs
+
 **Path:** `Assets/HOK/Scripts/Ferry/SplineJunction.cs`
 **Type:** MonoBehaviour
 
-**Purpose:** Marks a junction point on a spline where the raft can branch to an alternate route. Place on or under a GameObject with SplineComputer.
+**Purpose:**
+Marks a junction point on a spline where the raft can branch to an alternate route. Place on or under a GameObject with SplineComputer (recommended: as a child of the spline).
 
 **Serialized Fields:**
+
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `junctionPercent` | float | 0.5f | Position on source spline (0-1) |
-| `activationRange` | float | 0.05f | Range around junction for activation |
-| `targetSpline` | SplineComputer | null | Spline to switch to |
-| `targetEntryPercent` | float | 0f | Entry position on target spline |
-| `requiredDirection` | int | 0 | Required travel direction (-1, 0, 1) |
-| `indicatorObject` | GameObject | null | Visual indicator when available |
-| `isAvailable` | bool | true | Whether junction is usable |
-| `autoReturnAtStart` | bool | false | Auto-trigger when raft reaches percent 0 |
+| junctionPercent | float | 0.5 | Position on source spline (0-1) |
+| activationRange | float | 0.05 | Range around junction for activation (percent distance) |
+| targetSpline | SplineComputer | null | Spline to switch to |
+| targetEntryPercent | float | 0.0 | Entry position on target spline (currently unused by RaftController) |
+| requiredDirection | int | 0 | Required travel direction (-1, 0, 1) |
+| requiresButtonPress | bool | true | If true, player must press TakeJunction. If false, auto-take when in range (return junctions) |
+| indicatorObject | GameObject | null | Visual indicator when available |
+| isAvailable | bool | true | Whether junction is usable |
+| autoReturnAtStart | bool | false | Legacy: auto trigger at spline percent 0 (prefer requiresButtonPress=false + activationRange) |
 
 **Public API:**
+
 | Member | Type | Description |
 |--------|------|-------------|
-| `SourceSpline` | SplineComputer (property) | The spline this junction belongs to |
-| `JunctionPercent` | float (property) | Position on source spline |
-| `ActivationRange` | float (property) | Detection range |
-| `TargetSpline` | SplineComputer (property) | Destination spline |
-| `TargetEntryPercent` | float (property) | Entry position on target |
-| `RequiredDirection` | int (property) | Required travel direction |
-| `IsAvailable` | bool (property) | Get/set availability |
-| `AutoReturnAtStart` | bool (property) | Whether junction auto-triggers at spline start |
-| `IsInRange(double, int)` | bool | Check if raft can use junction |
-| `UpdateIndicator(bool)` | void | Show/hide visual indicator |
-| `GetWorldPosition()` | Vector3 | World position of junction point |
+| SourceSpline | SplineComputer (property) | Spline this junction belongs to |
+| JunctionPercent | float (property) | Position on source spline |
+| ActivationRange | float (property) | Detection range |
+| TargetSpline | SplineComputer (property) | Destination spline |
+| TargetEntryPercent | float (property) | Target entry percent (currently unused) |
+| RequiredDirection | int (property) | Required travel direction |
+| RequiresButtonPress | bool (property) | Manual vs auto-take |
+| IsAvailable | bool (property) | Get/set availability |
+| AutoReturnAtStart | bool (property) | Legacy auto-return flag |
+| IsInRange(double, int) | bool | Check if raft can use junction |
+| UpdateIndicator(bool) | void | Show/hide visual indicator |
 
-**Scene Setup:**
-1. Create SplineJunction as child of RiverSpline GameObject
-2. Set `junctionPercent` to position along river (e.g., 0.7 for 70%)
+**Scene Setup (Authoritative):**
+
+1. Create SplineJunction as a child of the source RiverSpline GameObject (SplineComputer)
+2. Set `junctionPercent` to position along source spline
 3. Assign `targetSpline` to the branch spline
-4. Set `targetEntryPercent` (usually 0 for start of branch)
-5. Optionally assign `indicatorObject` for visual feedback
-6. For dead-end branches: set `autoReturnAtStart = true` on the return junction
+4. Optionally assign `indicatorObject` for visual feedback
+5. Configure behavior:
+   - Main -> Merchant branch junction: `requiresButtonPress = true`
+   - Merchant -> Main river return junction: `requiresButtonPress = false` (auto)
 
-**Gizmos:**
-- Green sphere at junction point (red if unavailable)
-- Green line showing activation range
-- Yellow line/sphere showing connection to target spline
+**Legacy note:** `autoReturnAtStart` exists but is not the recommended return behavior for MVP.
 
 ---
 
-#### FreeMovementController.cs
-**Path:** `Assets/HOK/Scripts/Ferry/FreeMovementController.cs`
+#### PlayerMovementController.cs
+
+**Path:** `Assets/HOK/Scripts/Ferry/PlayerMovementController.cs`
 **Type:** MonoBehaviour
 
-**Purpose:** Controls raft movement in free-navigation areas (Hub). Uses tank-style controls with direct world-space movement on the X-Z plane instead of spline sampling.
+**Purpose:**
+Unified movement controller that handles both free movement (Hub) and spline-based movement (Rivers). Replaces separate RaftController and FreeMovementController. Allows same raft prefab to work in any scene.
+
+**Dependencies:**
+- `Dreamteck.Splines.SplineComputer`
+- `UnityEngine.InputSystem.InputValue`
+- `Obvious.Soap.ScriptableEventNoParam` (optional)
+- `HOK.Ferry.SplineJunction`
+
+**Movement Modes:**
+
+| Mode | Description |
+|------|-------------|
+| Free | Tank-style movement on X-Z plane (Hub scenes) |
+| Spline | Movement constrained to spline (River scenes) |
 
 **Serialized Fields:**
+
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `maxSpeed` | float | 5f | Maximum forward/back speed |
-| `acceleration` | float | 3f | Acceleration rate |
-| `deceleration` | float | 5f | Deceleration rate |
-| `rotationSpeed` | float | 55f | Rotation speed (degrees/sec) |
-| `waterLevel` | float | 0.3f | Fixed Y position for the raft |
-| `onRaftStartedMoving` | ScriptableEventNoParam | null | Event when movement begins |
-| `onRaftStoppedMoving` | ScriptableEventNoParam | null | Event when movement stops |
+| currentMode | MovementMode | Free | Current movement mode |
+| freeMaxSpeed | float | 5f | Max speed in Free mode (Hub) |
+| freeAcceleration | float | 3f | Acceleration in Free mode |
+| freeDeceleration | float | 5f | Deceleration in Free mode |
+| rotationSpeed | float | 55f | Rotation speed (Free mode) |
+| waterLevel | float | 0.3f | Fixed Y position (Free mode) |
+| splineMaxSpeed | float | 1f | Max speed in Spline mode (River) |
+| splineAcceleration | float | 1f | Acceleration in Spline mode |
+| splineDeceleration | float | 3f | Deceleration in Spline mode |
+| spline | SplineComputer | null | River spline (Spline mode) |
+| startingPercent | double | 0.0 | Starting spline percent |
+| splineRotationSpeed | float | 5f | How fast raft aligns with spline |
+| autoDetectSplineOnStart | bool | true | Auto-find spline tagged "MainRiver" |
+| junctions | List\<SplineJunction\> | empty | Available junctions |
+| onRaftStartedMoving | ScriptableEventNoParam | null | Movement started event |
+| onRaftStoppedMoving | ScriptableEventNoParam | null | Movement stopped event |
+| onJunctionAvailable | ScriptableEventNoParam | null | Junction available event |
+| onJunctionTaken | ScriptableEventNoParam | null | Junction taken event |
 
 **Public API:**
+
 | Member | Type | Description |
 |--------|------|-------------|
-| `IsMoving` | bool (property) | True if raft is moving or turning |
-| `CurrentSpeed` | float (property) | Current forward/back speed |
-| `CurrentVelocity` | Vector3 (property) | World-space velocity vector |
-| `OnMove(InputValue)` | void | Called by PlayerInput (SendMessages) |
-| `SetMoveInput(Vector2)` | void | Direct input control |
-| `SetPosition(Vector3)` | void | Set raft position directly |
-| `SetPosition(float x, float z)` | void | Set X-Z position, Y at water level |
-
-**Input Handling:**
-- Uses `PlayerInput` component with `SendMessages` behavior
-- **Tank-style controls** (different from river RaftController):
-  - W/Up Arrow = move forward (in raft's facing direction)
-  - S/Down Arrow = move backward
-  - A/Left Arrow = rotate left
-  - D/Right Arrow = rotate right
-- Movement is relative to raft's facing direction, not screen
+| CurrentMode | MovementMode (property) | Current movement mode |
+| IsMoving | bool (property) | True if raft is moving |
+| CurrentSpeed | float (property) | Current movement speed |
+| CurrentVelocity | Vector3 (property) | World-space velocity (Free mode) |
+| CurrentSpline | SplineComputer (property) | The spline being followed |
+| ActiveJunction | SplineJunction (property) | Junction currently in range |
+| IsJunctionAvailable | bool (property) | True if junction available |
+| SetMode(MovementMode) | void | Switch movement mode |
+| SetFreeMode() | void | Switch to free movement |
+| SetSplineMode(SplineComputer, double) | void | Switch to spline mode |
+| OnMove(InputValue) | void | PlayerInput callback |
+| OnTakeJunction(InputValue) | void | Junction activation (Spline mode) |
+| SetMoveInput(Vector2) | void | Direct input setter |
+| SetPosition(Vector3) | void | Set position (Free mode) |
+| GetSplinePercent() | double | Get spline position |
+| SetSplinePercent(double) | void | Set spline position |
+| SetSpline(SplineComputer) | void | Change spline |
+| SetSpline(SplineComputer, double) | void | Change spline with entry percent |
 
 **Usage:**
+
 ```csharp
-FreeMovementController raft = GetComponent<FreeMovementController>();
+PlayerMovementController movement = GetComponent<PlayerMovementController>();
 
-// Check movement
-if (raft.IsMoving) { /* ... */ }
+// Check mode
+if (movement.CurrentMode == MovementMode.Free)
+{
+    movement.SetPosition(new Vector3(0, 0, -10));
+}
 
-// Get velocity
-Vector3 velocity = raft.CurrentVelocity;
+// Switch to spline mode (typically done by SceneTransitionManager)
+movement.SetSplineMode(riverSpline, 0.0);
 
-// Teleport raft
-raft.SetPosition(new Vector3(10f, 0.3f, 5f));
+// Switch to free mode
+movement.SetFreeMode();
 ```
+
+**Notes:**
+- Combines RaftController (spline) and FreeMovementController (free) into one script
+- Mode is typically set by SceneTransitionManager on scene load
+- Same raft prefab can be used in both Hub and River scenes
+- Junction behavior only active in Spline mode
+
+---
+
+#### FreeMovementController.cs (DEPRECATED)
+
+**Path:** `Assets/HOK/Scripts/Ferry/FreeMovementController.cs`
+**Type:** MonoBehaviour
+**Status:** DEPRECATED - Use PlayerMovementController instead
+
+**Purpose:**
+Legacy controller for free movement in Hub. Replaced by PlayerMovementController's Free mode.
+
+---
+
+#### RaftController.cs (DEPRECATED)
+
+**Path:** `Assets/HOK/Scripts/Ferry/RaftController.cs`
+**Type:** MonoBehaviour
+**Status:** DEPRECATED - Use PlayerMovementController instead
+
+**Purpose:**
+Legacy controller for spline movement in Rivers. Replaced by PlayerMovementController's Spline mode.
+
+---
+
+#### RiverEntrance.cs
+
+**Path:** `Assets/HOK/Scripts/Ferry/RiverEntrance.cs`
+**Type:** MonoBehaviour
+**Requires:** Collider (set as trigger)
+
+**Purpose:**
+Marks a river entrance in the Central Hub. When the raft enters the trigger, transitions to the target river scene.
+
+**Serialized Fields:**
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| targetSceneName | string | "" | Scene to load |
+| riverType | RiverType | Acheron | Which river this leads to |
+| spawnPercent | float | 0.0 | Where on river spline to spawn (0=entrance, 1=dock) |
+| indicatorObject | GameObject | null | Visual indicator |
+| isUnlocked | bool | true | Whether entrance is usable |
+
+**Public API:**
+
+| Member | Type | Description |
+|--------|------|-------------|
+| River | RiverType (property) | The river type |
+| IsUnlocked | bool (property) | Get/set availability |
+| TargetSceneName | string (property) | Scene to load |
+| SpawnPercent | float (property) | Spawn position on river |
+| UpdateIndicator(bool) | void | Show/hide visual |
+
+**Scene Setup:**
+1. Place at river entrance position in Hub scene
+2. Add Collider component (will be auto-set as trigger)
+3. Configure targetSceneName to match river scene name exactly
+4. Set spawnPercent to 0.0 (river entrance/mouth where player enters)
+5. Only unlock Acheron for MVP; others remain locked
+
+---
+
+#### RiverExit.cs
+
+**Path:** `Assets/HOK/Scripts/Ferry/RiverExit.cs`
+**Type:** MonoBehaviour
+**Requires:** Collider (set as trigger)
+
+**Purpose:**
+Marks a river exit point at the river entrance/mouth (NOT the dock). Place near spline percent 0 where players exit back to the hub after picking up souls.
+
+**Serialized Fields:**
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| riverType | RiverType | Acheron | Which river this exit is in |
+| hubSpawnPosition | Vector3 | (0,0,0) | Where to spawn in hub (X,Z used) |
+| hubSpawnRotationY | float | 0 | Facing direction in hub |
+| indicatorObject | GameObject | null | Visual indicator |
+
+**Public API:**
+
+| Member | Type | Description |
+|--------|------|-------------|
+| River | RiverType (property) | The river type |
+| UpdateIndicator(bool) | void | Show/hide visual |
+
+**Scene Setup:**
+1. Place near river entrance/mouth (spline percent ~0, +X side in Acheron)
+2. Add Collider component (will be auto-set as trigger)
+3. Set hubSpawnPosition to match corresponding RiverEntrance position in Hub
+4. Set hubSpawnRotationY so raft faces away from entrance (into hub)
+
+**River Flow:**
+- Hub → RiverEntrance → Spawn at river mouth (percent 0)
+- Player travels to dock (percent 1) to pick up souls
+- Player travels back to river mouth (percent 0)
+- River mouth → RiverExit → Hub
+
+**Gizmos:**
+- Cyan sphere at exit position
+- Yellow arrow showing hub facing direction
+- Magenta line to hub spawn position
 
 ---
 
 ### HOK.Editor
 
 #### SplineInitializer.cs
+
 **Path:** `Assets/HOK/Scripts/Editor/SplineInitializer.cs`
 **Type:** Static class (Editor only)
 
 **Menu Items:**
+
 | Path | Description |
 |------|-------------|
-| `HOK/Initialize River Spline` | Sets up selected SplineComputer with default river path |
+| HOK/Initialize River Spline | Sets up selected SplineComputer with default river path |
 
 **Public API:**
+
 | Method | Description |
 |--------|-------------|
-| `InitializeRiverSpline(SplineComputer)` | Creates 5-point river along X axis |
-| `InitializeMerchantBranchSpline(SplineComputer)` | Creates 4-point branch toward upper-left |
+| InitializeRiverSpline(SplineComputer) | Creates 5-point river along X axis |
+| InitializeMerchantBranchSpline(SplineComputer) | Creates 4-point branch toward upper-left |
 
 **Notes:**
 - River spline: X=18 (entrance, right) to X=-17 (dock, left) at Z=2
@@ -305,13 +574,13 @@ raft.SetPosition(new Vector3(10f, 0.3f, 5f));
 
 | Asset | Type | Path | Description |
 |-------|------|------|-------------|
-| `CurrentGameState` | IntVariable | `Variables/CurrentGameState.asset` | Current GameState as int |
+| CurrentGameState | IntVariable | Variables/CurrentGameState.asset | Current GameState as int |
 
 ### Events
 
 | Asset | Type | Path | Description |
 |-------|------|------|-------------|
-| `OnGameStateChanged` | ScriptableEventInt | `Events/OnGameStateChanged.asset` | Fired when game state changes |
+| OnGameStateChanged | ScriptableEventInt | Events/OnGameStateChanged.asset | Fired when game state changes |
 
 ---
 
@@ -321,164 +590,127 @@ raft.SetPosition(new Vector3(10f, 0.3f, 5f));
 
 ### Action Maps
 
-#### Fishing
-| Action | Type | Bindings | Description |
-|--------|------|----------|-------------|
-| `Cast` | Button | LMB, RT | Cast fishing line |
-| `Reel` | Button (Hold) | LMB, RT | Reel in line |
-| `Hook` | Button | Space, A | Set the hook |
-| `AimDirection` | Vector2 | Mouse delta, Right Stick | Aim cast direction |
+| Map | Status | Description |
+|-----|--------|-------------|
+| Fishing | Planned | Fishing-related inputs |
+| Ferry | Active | River navigation |
+| UI | Planned | Menu navigation |
+| Hub | Active | Free movement in hub |
 
-#### Ferry
-| Action | Type | Bindings | Description |
-|--------|------|----------|-------------|
-| `Move` | Vector2 | WASD, Arrows, Left Stick | Move raft along river |
-| `Interact` | Button | E, X | Interact with souls/docks |
-| `AcceptPayment` | Button | F, Y | Accept soul payment |
-| `RejectSoul` | Button | R, B | Reject non-paying soul |
+### Ferry Actions
 
-#### UI
 | Action | Type | Bindings | Description |
 |--------|------|----------|-------------|
-| `Navigate` | Vector2 | WASD, Arrows, D-Pad | Menu navigation |
-| `Submit` | Button | Enter, Space, A | Confirm selection |
-| `Cancel` | Button | Escape, B | Back/Cancel |
-| `Pause` | Button | Escape, Start | Toggle pause menu |
+| Move | Vector2 | WASD, Arrows, Left Stick | Move raft along river |
+| Interact | Button | E, X | Interact with souls/docks |
+| AcceptPayment | Button | F, Y | Accept soul payment |
+| RejectSoul | Button | R, B | Reject non-paying soul |
+| TakeJunction | Button | (TO ADD) | Manual branch activation (required for merchant branch) |
+
+**NOTE:** `TakeJunction` must be added to the Input Actions asset and wired to `RaftController.OnTakeJunction`.
 
 ---
 
 ## Scene Structure
 
 ### Acheron_Greybox Scene
+
 **Path:** `Assets/HOK/Scenes/Rivers/Acheron_Greybox.unity`
 
 **Hierarchy:**
-```
-Acheron_Greybox
-  Main Camera (CinemachineBrain)
-  Directional Light
-  ---ENVIRONMENT---
-    WaterPlane
-    RiverBed
-    Dock (main river dead end, left)
-    RiverSpline (SplineComputer)
-      Junction_ToMerchant
-    MerchantBranchSpline (SplineComputer)
-      Junction_ToRiver
-    MerchantArea/
-      MerchantDock
-      MerchantStall
-    BottomBank_Main
-    MainUpperBank_Right
-    MainUpperBank_Left
-    UpperMerchantBank_Diagonal
-    LowerMerchantBank_Diagonal
-    UpperMerchantBank
-    LowerMerchantBank
-    MainRiverDeadEndBank
-    BranchBank_DeadEndBank
-  ---UNDERWATER---
-  ---PLAYER---
-    Raft (RaftController, PlayerInput)
-    Kharon_Placeholder (FollowTarget)
-    Scorch_Placeholder (FollowTarget)
-  ---CAMERA---
-    VCam_Navigation (CinemachineCamera, CinemachineFollow)
-    VCam_Fishing (disabled)
-  DontDestroyOnLoad
-```
+- RiverSpline (SplineComputer)
+  - Junction_ToMerchant (SplineJunction, `requiresButtonPress = true`)
+- MerchantBranchSpline (SplineComputer)
+  - Junction_ToRiver (SplineJunction, `requiresButtonPress = false`)
 
-**Camera Setup:**
-- VCam_Navigation follows Raft with offset (0, 10, -20)
-- Camera at -Z side, looking toward +Z (Y rotation = 0)
-- +X = screen right, -X = screen left, +Z = screen top, -Z = screen bottom
-
-**Coordinate System (CORRECT):**
-- Unity standard: +X=right, +Y=up, +Z=forward
-- Side-scroller view: camera at -Z looking toward +Z
-- River runs along X-axis: entrance (+X, right) to dock (-X, left)
+**Camera / Coordinate System:**
+- Camera at -Z looking toward +Z
+- +X = screen right, -X = screen left
+- River runs along X axis: entrance (+X, right) -> dock (-X, left)
 - Branch forks toward +Z (top of screen)
 
 **Character Offsets (from Raft):**
 - Kharon: (0, 0.95, 0)
 - Scorch: (0.8, 0.3, -0.8)
 
-**Materials:**
-- Bank_DarkGreen: All bank objects
-- Dock_LightBrown: Dock, MerchantDock, MerchantStall
-- Raft_Orange: Raft
+**Hierarchy (required for transitions):**
+- ---PLAYER---
+  - Raft (with PlayerMovementController, Rigidbody, Collider, PlayerInput)
+  - Kharon (with FollowTarget)
+  - Scorch (with FollowTarget)
+- ---MANAGERS---
+  - SceneTransitionManager (prefab instance)
+- ---ENVIRONMENT---
+  - RiverSpline (SplineComputer)
+    - Junction_ToMerchant (SplineJunction)
+  - MerchantBranchSpline (SplineComputer)
+    - Junction_ToRiver (SplineJunction)
+  - RiverExit (RiverExit component near river entrance/mouth at +X, triggers transition to Hub)
 
 ---
 
 ### Central_Hub Scene
+
 **Path:** `Assets/HOK/Scenes/Hubs/Central_Hub.unity`
 
+Hub uses PlayerMovementController in Free mode with tank controls.
+
+**Hierarchy (required for transitions):**
+- ---PLAYER---
+  - Raft (with PlayerMovementController, Rigidbody, Collider, PlayerInput)
+  - Kharon (with FollowTarget)
+  - Scorch (with FollowTarget)
+- ---MANAGERS---
+  - SceneTransitionManager (prefab instance)
+- ---ENVIRONMENT---
+  - RiverEntrances
+    - Acheron_Entrance (RiverEntrance, targetSceneName="Acheron_Greybox", isUnlocked=true)
+    - Styx_Entrance (RiverEntrance, isUnlocked=false)
+    - Lethe_Entrance (RiverEntrance, isUnlocked=false)
+    - Phlegethon_Entrance (RiverEntrance, isUnlocked=false)
+    - Cocytus_Entrance (RiverEntrance, isUnlocked=false)
+
+---
+
+### Bootstrap Scene
+
+**Path:** `Assets/HOK/Scenes/_Bootstrap/Bootstrap.unity`
+
+**Purpose:** Initialization scene that creates persistent managers.
+
 **Hierarchy:**
-```
-Central_Hub
-  Main Camera (CinemachineBrain)
-  Directional Light
-  ---ENVIRONMENT---
-    WaterPlane
-    DropOffDock (at +Z, north side)
-    RiverEntrance_Acheron (at -Z, south)
-    RiverEntrance_Styx (at +X, east)
-    RiverEntrance_Lethe (at -X, west)
-    RiverEntrance_Phlegethon (at +X, -Z, southeast)
-    RiverEntrance_Cocytus (at -X, -Z, southwest)
-  ---CAMERA---
-    VCam_Hub (CinemachineCamera, CinemachineFollow, CinemachineRotationComposer)
-  ---PLAYER---
-    Raft (FreeMovementController, PlayerInput)
-      Kharon_Placeholder (on cooler)
-      Scorch_Placeholder (hidden next to cooler)
-      Cooler_Placeholder
-```
+- GameManager (with GameManager component, DontDestroyOnLoad)
+- SceneTransitionManager (prefab instance - singleton handles duplicates)
 
-**Camera Setup:**
-- VCam_Hub follows Raft with offset (0, 2.5, -8)
-- Third-person behind/above view, looking at raft
-- CinemachineFollow with LockToTargetWithWorldUp binding mode
-- CinemachineRotationComposer for smooth look-at
-
-**Character Layout (on Raft):**
-- Cooler: local pos (-0.28, 1.25, 0.3), scale (0.3, 1.5, 0.071)
-- Kharon: local pos (-0.28, 4.62, 0.3), scale (0.17, 2.6, 0.06) - standing ON cooler
-- Scorch: local pos (-0.08, 1, 0.3), scale (0.16, 1, 0.0714286) - curled up next to cooler
-- Height gag: Kharon appears ~7ft tall on cooler, actually ~5'7" when off
-
-**Movement:**
-- Uses FreeMovementController (tank controls)
-- W/S = forward/back in raft's facing direction
-- A/D = rotate left/right
-- Not spline-locked like river scenes
-
-**River Entrances (placeholders):**
-- Acheron: (0, 0.5, -45) - south, active for MVP
-- Styx: (45, 0.5, 0) - east
-- Lethe: (-45, 0.5, 0) - west
-- Phlegethon: (32, 0.5, -32) - southeast
-- Cocytus: (-32, 0.5, -32) - southwest
+**Notes:**
+- Must be first scene in Build Settings (index 0)
+- GameManager persists across all scene loads
+- SceneTransitionManager is now a prefab placed in every scene for easier testing
+- Singleton pattern in SceneTransitionManager ensures only one instance exists
+- After initialization, load first gameplay scene (Acheron or Hub)
 
 ---
 
 ## Conventions
 
 ### Coding Standards
+
 - No `var` keyword - explicit types always
 - No per-frame allocations or LINQ
 - Prefer async/await (UniTask) over coroutines
 - ASCII-only in code and comments
 
 ### Naming
+
 - Namespaces: `HOK.<System>`
 - Scripts: PascalCase
 - Private fields: camelCase with no prefix
 - Serialized fields: `[SerializeField] private Type fieldName`
 
 ### Scene Organization
+
 - Use `---CATEGORY---` empty GameObjects for hierarchy organization
-- Persistent objects go under `DontDestroyOnLoad`
+- Persistent objects go under DontDestroyOnLoad
 - Cameras under `---CAMERA---`
 - Player-related objects under `---PLAYER---`
 
@@ -487,28 +719,26 @@ Central_Hub
 ## Dependencies Reference
 
 ### Dreamteck Splines
+
 ```csharp
 using Dreamteck.Splines;
 
-// Sample position on spline
 SplineSample sample = splineComputer.Evaluate(percent); // percent is 0-1
 Vector3 position = sample.position;
 Vector3 forward = sample.forward;
 
-// Get spline length
 float length = splineComputer.CalculateLength();
 ```
 
 ### SOAP (Obvious.Soap)
+
 ```csharp
 using Obvious.Soap;
 
-// Variables
 [SerializeField] private IntVariable myInt;
 int value = myInt.Value;
 myInt.Value = 5;
 
-// Events
 [SerializeField] private ScriptableEventNoParam myEvent;
 myEvent.Raise();
 
@@ -517,16 +747,16 @@ myIntEvent.Raise(42);
 ```
 
 ### Input System
+
 ```csharp
 using UnityEngine.InputSystem;
 
-// With PlayerInput component (SendMessages behavior)
 public void OnMove(InputValue value)
 {
     Vector2 input = value.Get<Vector2>();
 }
 
-public void OnFire(InputValue value)
+public void OnTakeJunction(InputValue value)
 {
     bool pressed = value.isPressed;
 }
@@ -538,13 +768,13 @@ public void OnFire(InputValue value)
 
 | Type | Location |
 |------|----------|
-| Scripts | `Assets/HOK/Scripts/<Namespace>/` |
-| SOAP Variables | `Assets/HOK/Data/Variables/` |
-| SOAP Events | `Assets/HOK/Data/Events/` |
-| Input Actions | `Assets/HOK/Settings/` |
-| Scenes | `Assets/HOK/Scenes/` |
-| Prefabs | `Assets/HOK/Prefabs/` |
-| Materials | `Assets/HOK/Art/Materials/` |
+| Scripts | Assets/HOK/Scripts/\<Namespace\>/ |
+| SOAP Variables | Assets/HOK/Data/Variables/ |
+| SOAP Events | Assets/HOK/Data/Events/ |
+| Input Actions | Assets/HOK/Settings/ |
+| Scenes | Assets/HOK/Scenes/ |
+| Prefabs | Assets/HOK/Prefabs/ |
+| Materials | Assets/HOK/Art/Materials/ |
 
 ---
 

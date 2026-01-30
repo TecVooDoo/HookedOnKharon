@@ -6,8 +6,8 @@
 **Platform:** Unity (Version TBD)
 **Source:** `E:\Unity\Hooked On Kharon`
 **Repository:** https://github.com/TecVooDoo/HookedOnKharon
-**Document Version:** 12
-**Last Updated:** January 24, 2026
+**Document Version:** 15
+**Last Updated:** January 29, 2026
 
 **Archive:** `HookedOnKharon_Status_Archive.md` - Historical designs, old version history, completed phase details (create when needed)
 
@@ -21,7 +21,7 @@
 
 **Current Phase:** Pre-Production
 
-**Last Session (Jan 24, 2026):** Added Hub action map to HOKInputActions. Replaced Acheron raft with ---PLAYER--- prefab, configured RaftController with min/max percent limits for longer raft. Fixed camera follow and junction cooldown for auto-return. Junction still requires movement to activate (known issue).
+**Last Session (Jan 29, 2026):** Created unified PlayerMovementController combining RaftController and FreeMovementController. Separate speed settings for Hub (fast) vs River (slow). Raft rotates to follow spline direction. Auto-detects main river spline via "MainRiver" tag. Scene transitions working both directions (Hub ↔ Acheron). SceneTransitionManager now a prefab in every scene for easier testing.
 
 ---
 
@@ -60,7 +60,7 @@
 - [x] Hub camera (third-person, behind/above, angled down)
 - [x] Add Hub action map to HOKInputActions (different controls from Ferry)
 - [x] Replace Acheron raft with ---PLAYER--- prefab
-- [ ] Scene transitions between Acheron and Hub
+- [x] Scene transitions between Acheron and Hub
 
 ### MVP Prototype - Fishing
 - [ ] Set up fishing SOAP events/variables
@@ -147,7 +147,7 @@
 - Seamless junction transitions using world-space projection (no vertical teleport)
 - Auto-return junction support at spline boundaries (dead-end branches)
 - Junction cooldown prevents immediate auto-return after switching splines
-- Min/max percent limits on RaftController prevent raft clipping at spline endpoints
+- Spline percent clamped to 0-1 range in RaftController (standard bounds)
 
 **Greybox Layout (IN PROGRESS):**
 - Y-shaped river matching reference diagram
@@ -164,6 +164,14 @@
 - Raft prefab instance with Kharon on cooler, Scorch hidden underneath
 - Kharon height gag: appears ~7ft on cooler, actually ~5'7" when off
 
+**Scene Transitions (DONE):**
+- SceneTransitionManager persists across scenes (DontDestroyOnLoad)
+- Flow: Hub → RiverEntrance → River (spawn at entrance) → Travel to dock → Pick up soul → Travel back → RiverExit → Hub
+- RiverEntrance: In Hub, triggers load of river scene, spawns at percent 0 (river mouth)
+- RiverExit: At river mouth (percent ~0, +X side), triggers return to Hub
+- Automatic input action map switching (Ferry <-> Hub)
+- Raft position set on scene load (spline percent for rivers, world position for hub)
+
 ---
 
 ## Known Issues
@@ -173,6 +181,8 @@
 
 **Junction System:**
 - Junction activation requires raft to be moving; cannot take junction while stationary (indicator shows but up input doesn't trigger)
+- Merchant branch junction not triggering (indicator shows, but no spline switch occurs)
+- Auto-return from merchant branch to main river not working
 
 **Design Gaps:**
 - Fish species count not finalized (50+ target)
@@ -255,8 +265,12 @@ Assets/
 |--------|-------|---------|
 | GameManager.cs | 68 | Persistent singleton, SOAP state management |
 | GameState.cs | 14 | Game state enum (OffDuty, Fishing, Ferrying, InMenu) |
-| RaftController.cs | ~400 | Spline-based raft movement with junction support, world-space transitions, min/max percent limits |
-| FreeMovementController.cs | ~155 | Tank-style free movement for Hub (W/S forward/back, A/D rotate) |
+| PlayerMovementController.cs | ~540 | Unified movement: Free mode (Hub) + Spline mode (River) with junctions |
+| RaftController.cs | DEPRECATED | Use PlayerMovementController instead |
+| FreeMovementController.cs | DEPRECATED | Use PlayerMovementController instead |
+| SceneTransitionManager.cs | ~265 | Prefab singleton for scene loading, spawn positioning, input map switching |
+| RiverExit.cs | ~95 | Trigger at river entrance/mouth, transitions to Hub |
+| RiverEntrance.cs | ~130 | Trigger in Hub, transitions to river scenes |
 | FollowTarget.cs | 47 | Follow target with offset (ExecuteAlways) |
 | SplineJunction.cs | ~140 | Marks branch points on splines for navigation |
 | SplineInitializer.cs | ~110 | Editor tool for river/branch spline setup |
@@ -291,6 +305,7 @@ Assets/
 | 2D Sprite | 1.0.0 | UI sprites, icons |
 | Cinemachine | 3.1.5 | Camera control |
 | Input System | 1.16.0 | Modern input handling |
+| ProBuilder | 6.0.8 | 3D modeling, level design |
 | Splines | 2.8.2 | Native spline support |
 | TextMeshPro | (included) | UI text rendering |
 | Timeline | 1.8.10 | Cutscenes, sequences |
@@ -840,7 +855,10 @@ After each work session, update this document:
 
 | Version | Date | Summary |
 |---------|------|---------|
-| 12 | Jan 24, 2026 | Added Hub action map. Replaced Acheron raft with ---PLAYER--- prefab. Added min/max percent limits to RaftController for longer raft. Fixed junction cooldown for auto-return. Known issue: junction requires movement to activate. |
+| 15 | Jan 29, 2026 | Unified PlayerMovementController (Free + Spline modes). Separate Hub/River speeds. Spline rotation following. Auto-detect MainRiver tag. Scene transitions working both directions. Junction system needs fixing (next session). |
+| 14 | Jan 29, 2026 | Scene transitions implemented: SceneTransitionManager, RiverExit, RiverEntrance completion. Auto input map switching. MVP Navigation section complete. |
+| 13 | Jan 27, 2026 | Updated troubleshooting docs to DLYH format. Created HOK_Troubleshooting_Archive.md. Fixed HOK_CodeReference.md formatting. Validated code against docs, removed incorrect min/max percent references. |
+| 12 | Jan 24, 2026 | Added Hub action map. Replaced Acheron raft with ---PLAYER--- prefab. Fixed junction cooldown for auto-return. Known issue: junction requires movement to activate. |
 | 11 | Jan 24, 2026 | Central Hub scene complete: FreeMovementController (tank controls), third-person camera, greybox layout with dock/river entrances. Kharon positioned on cooler with Scorch hidden. Ready for playtesting. |
 | 10 | Jan 24, 2026 | Fixed junction transitions: world-space projection for seamless spline switching, removed vertical teleport, fixed direction reversal bug. Minor forward offset remains (editor tweaking). |
 | 9 | Jan 24, 2026 | Fixed coordinate system (camera at -Z looking +Z). Rebuilt greybox layout to match reference diagram. Added colored materials. Splines need tuning. |

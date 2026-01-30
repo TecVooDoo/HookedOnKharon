@@ -270,8 +270,9 @@ GameObject:
   - component: {fileID: 927538305662697291}
   - component: {fileID: 1032624192239411385}
   - component: {fileID: 2519600364662027740}
-  - component: {fileID: 977283672029497649}
   - component: {fileID: 9055666307747617787}
+  - component: {fileID: 9178484999844962614}
+  - component: {fileID: 8310600843444311254}
   m_Layer: 0
   m_Name: Raft
   m_TagString: Untagged
@@ -288,7 +289,7 @@ Transform:
   m_GameObject: {fileID: 5849562402065206777}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.3, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 2.5, y: 0.3, z: 7}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -375,25 +376,6 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &977283672029497649
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5849562402065206777}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f2d29f4b69ec610408f572613e6a89ac, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HOK.Ferry.FreeMovementController
-  maxSpeed: 5
-  acceleration: 3
-  deceleration: 5
-  rotationSpeed: 180
-  waterLevel: 0.3
-  onRaftStartedMoving: {fileID: 0}
-  onRaftStoppedMoving: {fileID: 0}
 --- !u!114 &9055666307747617787
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -424,6 +406,63 @@ MonoBehaviour:
   m_DefaultActionMap: Ferry
   m_SplitScreenIndex: -1
   m_Camera: {fileID: 0}
+--- !u!54 &9178484999844962614
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5849562402065206777}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
+--- !u!114 &8310600843444311254
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5849562402065206777}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cfc2bae713ecf1548827cd15420028be, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HOK.Ferry.PlayerMovementController
+  currentMode: 0
+  freeMaxSpeed: 5
+  freeAcceleration: 3
+  freeDeceleration: 5
+  rotationSpeed: 55
+  waterLevel: 0.3
+  splineMaxSpeed: 1
+  splineAcceleration: 1
+  splineDeceleration: 3
+  spline: {fileID: 0}
+  startingPercent: 0.009999999776482582
+  splineRotationSpeed: 4
+  autoDetectSplineOnStart: 1
+  junctions: []
+  onRaftStartedMoving: {fileID: 0}
+  onRaftStoppedMoving: {fileID: 0}
+  onJunctionAvailable: {fileID: 0}
+  onJunctionTaken: {fileID: 0}
 --- !u!1 &8636616092031838461
 GameObject:
   m_ObjectHideFlags: 0
