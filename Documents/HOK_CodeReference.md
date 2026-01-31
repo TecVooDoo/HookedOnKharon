@@ -2,7 +2,7 @@
 
 Purpose: Quick reference for existing code, APIs, and conventions. Check this before writing new code to avoid referencing non-existent classes or methods.
 
-Last Updated: 2026-01-29
+Last Updated: 2026-01-30
 
 ---
 
@@ -400,7 +400,7 @@ Unified movement controller that handles both free movement (Hub) and spline-bas
 | SetFreeMode() | void | Switch to free movement |
 | SetSplineMode(SplineComputer, double) | void | Switch to spline mode |
 | OnMove(InputValue) | void | PlayerInput callback |
-| OnTakeJunction(InputValue) | void | Junction activation (Spline mode) |
+| OnTakeJunction(InputValue) | void | Junction activation (Spline mode). Calls ArmManualJunction on press; cooldown prevents spam. |
 | SetMoveInput(Vector2) | void | Direct input setter |
 | SetPosition(Vector3) | void | Set position (Free mode) |
 | GetSplinePercent() | double | Get spline position |
@@ -431,6 +431,8 @@ movement.SetFreeMode();
 - Mode is typically set by SceneTransitionManager on scene load
 - Same raft prefab can be used in both Hub and River scenes
 - Junction behavior only active in Spline mode
+- Junction input uses cooldown-based spam prevention (1.5s default) instead of tracking button state
+- OnTakeJunction simply arms the manual junction on any press; the cooldown prevents double-triggering
 
 ---
 
@@ -758,7 +760,11 @@ public void OnMove(InputValue value)
 
 public void OnTakeJunction(InputValue value)
 {
-    bool pressed = value.isPressed;
+    // Simply arm on press - cooldown prevents spam
+    if (value.isPressed)
+    {
+        ArmManualJunction();
+    }
 }
 ```
 
