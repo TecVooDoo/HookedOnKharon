@@ -826,6 +826,7 @@ public enum PaymentType { FullObol, PartialObol, BarterItem, Nothing }
 7. **Use E: drive path** - never worktree paths
 8. **Be direct** - give honest assessments, don't sugar-coat
 9. **Acknowledge gaps** - say explicitly when something is missing or unclear
+10. **Status update = CodeReference update** - when updating HOK_Status.md after code changes, ALWAYS also update HOK_CodeReference.md in the same commit
 
 ---
 
@@ -845,7 +846,7 @@ After each work session, update this document:
 - [ ] Add new lessons to "Lessons Learned" if applicable
 - [ ] Increment version number in header
 - [ ] Archive old version history entries when needed (keep ~5-6 recent)
-- [ ] **Update HOK_CodeReference.md** if any scripts, SOAP assets, or input actions were added/changed
+- [ ] **Update HOK_CodeReference.md** - MANDATORY if any scripts were added/changed (do this BEFORE committing status updates)
 
 ---
 
