@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1fdf30c6e85c2d44daa6089708fe727c, type: 3}
+  m_Name: Fish_MourningSturgeon
+  m_EditorClassIdentifier: Assembly-CSharp::HOK.Data.FishDefinition
+  fishName: MourningSturgeon
+  description: An ancient fish that remembers every soul that passed. Heavy and stubborn.
+  icon: {fileID: 0}
+  prefab: {fileID: 0}
+  rarity: 1
+  baseCatchDifficulty: 0.6
+  tensionMultiplier: 1.6
+  escapeStrength: 1.3
+  hookWindowSize: 0.4
+  minBiteTime: 12
+  maxBiteTime: 25
+  biteWindowDuration: 0.9
+  minScorchProximity: 0
+  requiredRiver: Acheron
+  baseObols: 35
+  isCollectible: 1

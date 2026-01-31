@@ -6,8 +6,8 @@
 **Platform:** Unity (Version TBD)
 **Source:** `E:\Unity\Hooked On Kharon`
 **Repository:** https://github.com/TecVooDoo/HookedOnKharon
-**Document Version:** 17
-**Last Updated:** January 30, 2026
+**Document Version:** 19
+**Last Updated:** January 31, 2026
 
 **Archive:** `HookedOnKharon_Status_Archive.md` - Historical designs, old version history, completed phase details (create when needed)
 
@@ -21,7 +21,7 @@
 
 **Current Phase:** Pre-Production
 
-**Last Session (Jan 30, 2026):** Fixed spline speed inconsistency - was using hardcoded divisor instead of actual spline length, causing different speeds on different splines. Made junction cooldown configurable in Inspector (default 2.5s). Updated default spline speed to 4 units/sec.
+**Last Session (Jan 31, 2026):** Completed fishing system foundation. Created all fishing scripts (FishingState enum, FishDefinition SO, FishingController, FishingLineRenderer, FishingCameraController). Created SOAP assets (Variables/Fishing and Events/Fishing folders). Created 10 Acheron fish definitions via FishDefinitionCreator editor tool. Added StartFishing input action to Ferry action map. Next: Scene setup, wire SOAP references in Inspector, configure Cinemachine cameras, test fishing flow.
 
 ---
 
@@ -63,13 +63,18 @@
 - [x] Scene transitions between Acheron and Hub
 
 ### MVP Prototype - Fishing
-- [ ] Set up fishing SOAP events/variables
-- [ ] Fish definitions (10 fish: 6 common, 3 uncommon, 1 rare)
-- [ ] Cast mechanic with aim
-- [ ] Line visual (cast to water)
-- [ ] Fish bite detection and hook timing
-- [ ] Tension-based reeling (give slack / reel in)
-- [ ] Catch resolution (success/fail)
+- [x] Set up fishing SOAP events/variables (Variables/Fishing, Events/Fishing)
+- [x] FishingState enum
+- [x] FishDefinition ScriptableObject
+- [x] FishingController (state machine, input, cast/hook/reel mechanics)
+- [x] FishingLineRenderer (line visual with depth tracking)
+- [x] FishingCameraController (Cast n' Chill style depth-tracking camera)
+- [x] PlayerMovementController integration (disabled during fishing)
+- [x] Fish definitions (10 fish: 6 common, 3 uncommon, 1 rare) via FishDefinitionCreator
+- [x] Add StartFishing input action to Ferry action map (F key, buttonSouth)
+- [ ] Wire SOAP references in Inspector (FishingController, LineRenderer, CameraController)
+- [ ] Configure Cinemachine cameras (fishing camera + navigation camera)
+- [ ] Test fishing state machine flow
 - [ ] Idle fishing stub (auto-cast, same reel mechanics)
 - [ ] Scorch proximity detection (flame intensity for rare fish)
 
@@ -263,7 +268,7 @@ Assets/
 |--------|-------|---------|
 | GameManager.cs | 68 | Persistent singleton, SOAP state management |
 | GameState.cs | 14 | Game state enum (OffDuty, Fishing, Ferrying, InMenu) |
-| PlayerMovementController.cs | ~540 | Unified movement: Free mode (Hub) + Spline mode (River) with junctions |
+| PlayerMovementController.cs | ~580 | Unified movement: Free mode (Hub) + Spline mode (River) with junctions, disabled during fishing |
 | RaftController.cs | DEPRECATED | Use PlayerMovementController instead |
 | FreeMovementController.cs | DEPRECATED | Use PlayerMovementController instead |
 | SceneTransitionManager.cs | ~265 | Prefab singleton for scene loading, spawn positioning, input map switching |
@@ -272,6 +277,12 @@ Assets/
 | FollowTarget.cs | 47 | Follow target with offset (ExecuteAlways) |
 | SplineJunction.cs | ~140 | Marks branch points on splines for navigation |
 | SplineInitializer.cs | ~110 | Editor tool for river/branch spline setup |
+| FishingState.cs | 15 | Fishing state enum (Inactive through CatchResolution) |
+| FishDefinition.cs | ~90 | ScriptableObject for fish species data |
+| FishingController.cs | ~580 | Main fishing controller: state machine, input, cast/hook/reel mechanics |
+| FishingLineRenderer.cs | ~145 | Renders fishing line, updates HookDepth for camera |
+| FishingCameraController.cs | ~220 | Cast n' Chill style depth-tracking camera during fishing |
+| FishDefinitionCreator.cs | ~155 | Editor tool to create 10 Acheron fish definitions (HOK menu) |
 
 ### Dependencies / Packages (Installed)
 
@@ -854,6 +865,8 @@ After each work session, update this document:
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 19 | Jan 31, 2026 | Completed fishing foundation: All scripts created, SOAP assets created (6 variables, 6 events), 10 fish definitions created via editor tool, StartFishing input action added. Ready for scene setup and Inspector wiring. |
+| 18 | Jan 31, 2026 | Started fishing system: FishingState enum, FishDefinition SO, FishingController (state machine + input + cast/hook/reel), FishingLineRenderer, FishingCameraController (Cast n' Chill style depth-tracking). Modified PlayerMovementController to disable during fishing. |
 | 17 | Jan 30, 2026 | Fixed spline speed inconsistency (was using hardcoded /10.0 instead of actual spline length). Made junction cooldown configurable in Inspector. Updated default spline speed to 4 units/sec. |
 | 16 | Jan 30, 2026 | Fixed junction system: removed takeJunctionPressed tracking (was causing one-time-only bug), simplified to cooldown-based prevention. Fixed Junction_ToRiver position from 0.95 to 0.05. Junctions now work repeatedly. |
 | 15 | Jan 29, 2026 | Unified PlayerMovementController (Free + Spline modes). Separate Hub/River speeds. Spline rotation following. Auto-detect MainRiver tag. Scene transitions working both directions. Junction system needs fixing (next session). |
@@ -864,11 +877,6 @@ After each work session, update this document:
 | 10 | Jan 24, 2026 | Fixed junction transitions: world-space projection for seamless spline switching, removed vertical teleport, fixed direction reversal bug. Minor forward offset remains (editor tweaking). |
 | 9 | Jan 24, 2026 | Fixed coordinate system (camera at -Z looking +Z). Rebuilt greybox layout to match reference diagram. Added colored materials. Splines need tuning. |
 | 8 | Jan 24, 2026 | Finalized MVP scope: Acheron + Hub, 10 fish, junction/branch system, 1 soul type, idle stub. Reorganized TODOs by system. |
-| 7 | Jan 24, 2026 | Raft navigation: RaftController, FollowTarget, side-scrolling camera, input bindings, HOK_CodeReference.md |
-| 6 | Jan 24, 2026 | Map design: hub-and-spoke layout, waterfall connectors, pickup/drop-off docks, flexible unlock progression, merchant access during ferry |
-| 5 | Jan 23, 2026 | Bootstrap scene, GameManager with SOAP, input actions, folder structure |
-| 4 | Jan 23, 2026 | Unity project created, packages installed, GitHub repo established |
-| 3 | Jan 23, 2026 | Document restructuring - aligned with DLYH patterns and updated template |
 
 ---
 

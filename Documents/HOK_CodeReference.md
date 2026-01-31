@@ -2,7 +2,7 @@
 
 Purpose: Quick reference for existing code, APIs, and conventions. Check this before writing new code to avoid referencing non-existent classes or methods.
 
-Last Updated: 2026-01-30
+Last Updated: 2026-01-31
 
 ---
 
@@ -12,12 +12,12 @@ Last Updated: 2026-01-30
 |-----------|---------|--------|
 | HOK.Core | Game state, managers, shared utilities | Active |
 | HOK.Ferry | Raft movement, soul transport | Active |
-| HOK.Fishing | Cast, reel, catch systems | Planned |
+| HOK.Fishing | Cast, reel, catch systems | Active |
 | HOK.Companion | Scorch behavior | Planned |
 | HOK.Progression | Unlocks, currency, codex | Planned |
 | HOK.UI | Menus, HUD, codex display | Planned |
 | HOK.Audio | Music, SFX managers | Planned |
-| HOK.Data | ScriptableObject definitions | Planned |
+| HOK.Data | ScriptableObject definitions | Active |
 | HOK.Editor | Editor utilities, tools | Active |
 
 ---
@@ -568,6 +568,238 @@ Marks a river exit point at the river entrance/mouth (NOT the dock). Place near 
 
 ---
 
+#### FishDefinitionCreator.cs
+
+**Path:** `Assets/HOK/Scripts/Editor/FishDefinitionCreator.cs`
+**Type:** Static class (Editor only)
+
+**Menu Items:**
+
+| Path | Description |
+|------|-------------|
+| HOK/Create Acheron Fish Definitions | Creates 10 fish for Acheron river |
+
+**Purpose:**
+Creates the MVP fish definitions for Acheron river. Creates 6 Common, 3 Uncommon, and 1 Rare fish in `Assets/HOK/Data/Definitions/Fish/{Common,Uncommon,Rare}/`.
+
+**Fish Created:**
+- Common: WoePerch, PainCarp, SorrowTrout, LamentBass, AcheronEel, GloomGuppy
+- Uncommon: GriefSalmon, RegretPike, MourningSturgeon
+- Rare: EmberfinPhantom (requires Scorch proximity 0.7+)
+
+**Notes:**
+- Uses SerializedObject to set private fields on FishDefinition
+- Skips existing fish to avoid overwrites
+- Creates folder structure if needed
+
+---
+
+### HOK.Fishing
+
+#### FishingState.cs
+
+**Path:** `Assets/HOK/Scripts/Fishing/FishingState.cs`
+**Type:** Enum
+
+```csharp
+public enum FishingState
+{
+    Inactive = 0,       // Not fishing - movement enabled
+    Idle = 1,           // Ready to cast - can aim
+    Casting = 2,        // Cast animation playing
+    LineInWater = 3,    // Waiting for fish bite
+    FishBiting = 4,     // Fish is biting - hook window active
+    Hooked = 5,         // Fish hooked - reeling phase
+    CatchResolution = 6 // Success/fail animation
+}
+```
+
+---
+
+#### FishingController.cs
+
+**Path:** `Assets/HOK/Scripts/Fishing/FishingController.cs`
+**Type:** MonoBehaviour
+
+**Purpose:**
+Main fishing controller that manages the fishing state machine, input handling, and coordinates all fishing subsystems (casting, hook timing, reeling).
+
+**Dependencies:**
+- `Obvious.Soap.IntVariable` - CurrentFishingState, LineTension, HookDepth, ScorchProximity
+- `Obvious.Soap.ScriptableEventInt` - OnGameStateChanged, OnFishingStateChanged
+- `Obvious.Soap.ScriptableEventNoParam` - OnCastStarted, OnFishBite, etc.
+- `HOK.Data.FishDefinition`
+
+**Serialized Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| currentFishingStateVariable | IntVariable | Current fishing state as int |
+| lineTensionVariable | FloatVariable | Line tension (0-1) |
+| hookDepthVariable | FloatVariable | Hook depth (0-1) for camera |
+| scorchProximityVariable | FloatVariable | Scorch proximity (0-1) |
+| fishPool | List\<FishPoolEntry\> | Available fish for this spot |
+| rodTipTransform | Transform | Where line originates |
+| hookTransform | Transform | Hook/lure position |
+
+**Public API:**
+
+| Member | Type | Description |
+|--------|------|-------------|
+| CurrentState | FishingState (property) | Current fishing state |
+| IsFishing | bool (property) | True if not Inactive |
+| HookedFish | FishDefinition (property) | Currently hooked fish |
+| LineTension | float (property) | Current tension (0-1) |
+| HookDepth | float (property) | Current hook depth (0-1) |
+| OnCast(InputValue) | void | PlayerInput: Cast button |
+| OnReel(InputValue) | void | PlayerInput: Reel button (hold) |
+| OnHook(InputValue) | void | PlayerInput: Hook button |
+| OnAimDirection(InputValue) | void | PlayerInput: Aim vector |
+| OnStartFishing(InputValue) | void | PlayerInput: Enter fishing mode |
+| OnCancelFishing(InputValue) | void | PlayerInput: Exit fishing mode |
+| StartFishing() | void | Manual fishing mode entry |
+| StopFishing() | void | Manual fishing mode exit |
+| SetScorchProximity(float) | void | Set Scorch proximity value |
+
+**State Flow:**
+```
+Inactive -> Idle (GameState.Fishing)
+Idle -> Casting (Cast input)
+Casting -> LineInWater (cast completes)
+LineInWater -> FishBiting (bite timer)
+FishBiting -> Hooked (successful hook)
+FishBiting -> LineInWater (missed hook)
+Hooked -> CatchResolution (catch or escape)
+CatchResolution -> Idle (reset)
+```
+
+---
+
+#### FishingLineRenderer.cs
+
+**Path:** `Assets/HOK/Scripts/Fishing/FishingLineRenderer.cs`
+**Type:** MonoBehaviour
+**Requires:** LineRenderer
+
+**Purpose:**
+Renders the fishing line from rod tip to hook position. Updates HookDepth SOAP variable for camera tracking.
+
+**Serialized Fields:**
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| rodTipTransform | Transform | null | Rod tip position |
+| hookTransform | Transform | null | Hook position |
+| currentFishingStateVariable | IntVariable | null | Controls visibility |
+| hookDepthVariable | FloatVariable | null | Updated based on hook Y |
+| waterSurfaceY | float | 0.3 | Water surface Y position |
+| maxDepth | float | 10 | Max depth for normalization |
+| lineSegments | int | 20 | Line smoothness |
+| lineSag | float | 0.5 | Line curve amount |
+
+**Public API:**
+
+| Method | Description |
+|--------|-------------|
+| SetWaterSurface(float) | Set water Y position |
+| SetLineSag(float) | Set line curve amount |
+| SetLineVisible(bool) | Force show/hide |
+
+---
+
+#### FishingCameraController.cs
+
+**Path:** `Assets/HOK/Scripts/Fishing/FishingCameraController.cs`
+**Type:** MonoBehaviour
+
+**Purpose:**
+Controls camera during fishing with Cast n' Chill style depth tracking. Camera transitions from 2.5D above-water view to near-2D side-view as hook depth increases. Waterline rises on screen as camera descends.
+
+**Serialized Fields:**
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| currentFishingStateVariable | IntVariable | null | Fishing state |
+| hookDepthVariable | FloatVariable | null | Hook depth (0-1) |
+| fishingCamera | CinemachineCamera | null | Fishing view camera |
+| navigationCamera | CinemachineCamera | null | Default camera |
+| cameraYOffsetMin | float | 5 | Y offset at min depth |
+| cameraYOffsetMax | float | -8 | Y offset at max depth |
+| cameraAngleMin | float | 30 | Pitch at min depth (2.5D) |
+| cameraAngleMax | float | 5 | Pitch at max depth (side-view) |
+| positionSmoothSpeed | float | 3 | Position transition speed |
+| rotationSmoothSpeed | float | 3 | Rotation transition speed |
+| followTarget | Transform | null | Target to follow |
+
+**Public API:**
+
+| Method | Description |
+|--------|-------------|
+| SetFollowTarget(Transform) | Set follow target |
+| SetWaterSurface(float) | Set water Y position |
+| SnapToTarget() | Immediate camera snap |
+| GetCurrentNormalizedDepth() | Get depth 0-1 |
+
+**Camera Behavior:**
+- Depth 0 (surface): Camera above water, 30deg angle (2.5D view)
+- Depth 0.5: Waterline at screen center, 17deg angle
+- Depth 1.0 (max): Camera below water, 5deg angle (near side-view)
+
+---
+
+### HOK.Data
+
+#### FishDefinition.cs
+
+**Path:** `Assets/HOK/Scripts/Data/FishDefinition.cs`
+**Type:** ScriptableObject
+**Menu:** HOK/Definitions/Fish Definition
+
+**Purpose:**
+Defines a fish species with all properties for fishing gameplay.
+
+**Serialized Fields:**
+
+| Field | Type | Range | Description |
+|-------|------|-------|-------------|
+| fishName | string | - | Display name |
+| description | string | - | Description text |
+| icon | Sprite | - | UI icon |
+| prefab | GameObject | - | 3D model prefab |
+| rarity | FishRarity | - | Common/Uncommon/Rare/Legendary |
+| baseCatchDifficulty | float | 0-1 | Catch difficulty modifier |
+| tensionMultiplier | float | 0.5-5 | Tension build rate |
+| escapeStrength | float | 0.1-5 | How hard fish pulls |
+| hookWindowSize | float | 0.1-1 | Hook timing leniency |
+| minBiteTime | float | 1-30 | Min wait for bite |
+| maxBiteTime | float | 1-60 | Max wait for bite |
+| biteWindowDuration | float | 0.3-3 | Hook window duration |
+| minScorchProximity | float | 0-1 | Required Scorch proximity |
+| requiredRiver | string | - | River restriction (empty=any) |
+| baseObols | int | 1-1000 | Currency reward |
+| isCollectible | bool | - | Goes to collection |
+
+**Public API:**
+
+| Method | Description |
+|--------|-------------|
+| GetRandomBiteTime() | Random time in min/max range |
+| CanSpawnWithScorchProximity(float) | Check proximity requirement |
+| CanSpawnInRiver(string) | Check river requirement |
+
+**FishRarity Enum:**
+```csharp
+public enum FishRarity
+{
+    Common = 0,
+    Uncommon = 1,
+    Rare = 2,
+    Legendary = 3
+}
+```
+
+---
+
 ## SOAP Assets
 
 **Location:** `Assets/HOK/Data/`
@@ -577,12 +809,23 @@ Marks a river exit point at the river entrance/mouth (NOT the dock). Place near 
 | Asset | Type | Path | Description |
 |-------|------|------|-------------|
 | CurrentGameState | IntVariable | Variables/CurrentGameState.asset | Current GameState as int |
+| CurrentFishingState | IntVariable | Variables/Fishing/CurrentFishingState.asset | Current FishingState as int |
+| LineTension | FloatVariable | Variables/Fishing/LineTension.asset | Line tension 0-1 |
+| CastPower | FloatVariable | Variables/Fishing/CastPower.asset | Cast power 0-1 |
+| HookDepth | FloatVariable | Variables/Fishing/HookDepth.asset | Hook depth 0-1 for camera |
+| ScorchProximity | FloatVariable | Variables/Fishing/ScorchProximity.asset | Scorch proximity 0-1 |
 
 ### Events
 
 | Asset | Type | Path | Description |
 |-------|------|------|-------------|
 | OnGameStateChanged | ScriptableEventInt | Events/OnGameStateChanged.asset | Fired when game state changes |
+| OnFishingStateChanged | ScriptableEventInt | Events/Fishing/OnFishingStateChanged.asset | Fishing state changes |
+| OnCastStarted | ScriptableEventNoParam | Events/Fishing/OnCastStarted.asset | Cast initiated |
+| OnFishBite | ScriptableEventNoParam | Events/Fishing/OnFishBite.asset | Fish is biting |
+| OnFishHooked | ScriptableEventNoParam | Events/Fishing/OnFishHooked.asset | Successfully hooked |
+| OnFishCaught | ScriptableEventNoParam | Events/Fishing/OnFishCaught.asset | Fish caught |
+| OnFishLost | ScriptableEventNoParam | Events/Fishing/OnFishLost.asset | Fish escaped |
 
 ---
 
@@ -594,10 +837,19 @@ Marks a river exit point at the river entrance/mouth (NOT the dock). Place near 
 
 | Map | Status | Description |
 |-----|--------|-------------|
-| Fishing | Planned | Fishing-related inputs |
+| Fishing | Active | Fishing-related inputs |
 | Ferry | Active | River navigation |
 | UI | Planned | Menu navigation |
 | Hub | Active | Free movement in hub |
+
+### Fishing Actions
+
+| Action | Type | Bindings | Description |
+|--------|------|----------|-------------|
+| Cast | Button | LMB (press), RT | Cast the line |
+| Reel | Button | LMB (hold), RT | Reel in the line |
+| Hook | Button | Space, Y/South | Attempt to hook fish |
+| AimDirection | Vector2 | Mouse Position, Left Stick | Aim direction for cast |
 
 ### Ferry Actions
 
@@ -607,9 +859,8 @@ Marks a river exit point at the river entrance/mouth (NOT the dock). Place near 
 | Interact | Button | E, X | Interact with souls/docks |
 | AcceptPayment | Button | F, Y | Accept soul payment |
 | RejectSoul | Button | R, B | Reject non-paying soul |
-| TakeJunction | Button | (TO ADD) | Manual branch activation (required for merchant branch) |
-
-**NOTE:** `TakeJunction` must be added to the Input Actions asset and wired to `RaftController.OnTakeJunction`.
+| TakeJunction | Button | W, Up Arrow | Manual branch activation |
+| StartFishing | Button | F, buttonSouth | Enter fishing mode |
 
 ---
 
@@ -777,6 +1028,7 @@ public void OnTakeJunction(InputValue value)
 | Scripts | Assets/HOK/Scripts/\<Namespace\>/ |
 | SOAP Variables | Assets/HOK/Data/Variables/ |
 | SOAP Events | Assets/HOK/Data/Events/ |
+| Fish Definitions | Assets/HOK/Data/Definitions/Fish/{Common,Uncommon,Rare}/ |
 | Input Actions | Assets/HOK/Settings/ |
 | Scenes | Assets/HOK/Scenes/ |
 | Prefabs | Assets/HOK/Prefabs/ |

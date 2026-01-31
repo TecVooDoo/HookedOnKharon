@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1fdf30c6e85c2d44daa6089708fe727c, type: 3}
+  m_Name: Fish_RegretPike
+  m_EditorClassIdentifier: Assembly-CSharp::HOK.Data.FishDefinition
+  fishName: RegretPike
+  description: Long and aggressive. Known to snap at anything that reminds it of
+    past mistakes.
+  icon: {fileID: 0}
+  prefab: {fileID: 0}
+  rarity: 1
+  baseCatchDifficulty: 0.55
+  tensionMultiplier: 1.5
+  escapeStrength: 1.8
+  hookWindowSize: 0.35
+  minBiteTime: 10
+  maxBiteTime: 20
+  biteWindowDuration: 0.7
+  minScorchProximity: 0
+  requiredRiver: Acheron
+  baseObols: 30
+  isCollectible: 1

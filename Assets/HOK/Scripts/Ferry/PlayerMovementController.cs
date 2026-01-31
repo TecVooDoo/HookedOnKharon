@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Dreamteck.Splines;
+using HOK.Core;
 using Obvious.Soap;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -62,6 +63,10 @@ namespace HOK.Ferry
         [SerializeField] private ScriptableEventNoParam onJunctionAvailable;
         [SerializeField] private ScriptableEventNoParam onJunctionTaken;
 
+        [Header("Game State Integration")]
+        [Tooltip("Subscribe to game state changes to disable movement during fishing.")]
+        [SerializeField] private ScriptableEventInt onGameStateChanged;
+
         // Shared state
         private float currentSpeed;
         private float targetSpeed;
@@ -73,6 +78,9 @@ namespace HOK.Ferry
         private SplineJunction activeJunction;
         private SplineJunction pendingManualJunction;
         private float junctionCooldown;
+
+        // Movement lock state
+        private bool movementLocked;
 
         #region Public Properties
 
@@ -102,6 +110,38 @@ namespace HOK.Ferry
         #endregion
 
         #region Unity Lifecycle
+
+        private void OnEnable()
+        {
+            if (onGameStateChanged != null)
+            {
+                onGameStateChanged.OnRaised += HandleGameStateChanged;
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (onGameStateChanged != null)
+            {
+                onGameStateChanged.OnRaised -= HandleGameStateChanged;
+            }
+        }
+
+        private void HandleGameStateChanged(int newState)
+        {
+            GameState state = (GameState)newState;
+
+            // Lock movement during fishing or menu states
+            movementLocked = state == GameState.Fishing || state == GameState.InMenu;
+
+            if (movementLocked)
+            {
+                // Stop any current movement
+                currentSpeed = 0f;
+                targetSpeed = 0f;
+                moveInput = Vector2.zero;
+            }
+        }
 
         private void Start()
         {
@@ -153,6 +193,12 @@ namespace HOK.Ferry
 
         private void Update()
         {
+            // Skip movement updates when locked (fishing, menu, etc.)
+            if (movementLocked)
+            {
+                return;
+            }
+
             if (currentMode == MovementMode.Free)
             {
                 UpdateFreeMovement();
