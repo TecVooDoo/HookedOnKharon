@@ -37,9 +37,9 @@ namespace HOK.Ferry
         [SerializeField] private float waterLevel = 0.3f;
 
         [Header("Spline Movement Settings (River)")]
-        [SerializeField] private float splineMaxSpeed = 1f;
-        [SerializeField] private float splineAcceleration = 1f;
-        [SerializeField] private float splineDeceleration = 3f;
+        [SerializeField] private float splineMaxSpeed = 4f;
+        [SerializeField] private float splineAcceleration = 3f;
+        [SerializeField] private float splineDeceleration = 4f;
 
         [Header("Spline Settings")]
         [SerializeField] private SplineComputer spline;
@@ -53,6 +53,8 @@ namespace HOK.Ferry
         [Header("Junctions")]
         [Tooltip("Junctions available on the current spline. Auto-populated if empty.")]
         [SerializeField] private List<SplineJunction> junctions = new List<SplineJunction>();
+        [Tooltip("Cooldown after taking a junction before another can be taken (seconds).")]
+        [SerializeField] private float junctionCooldownDuration = 2.5f;
 
         [Header("SOAP Events (Optional)")]
         [SerializeField] private ScriptableEventNoParam onRaftStartedMoving;
@@ -381,8 +383,12 @@ namespace HOK.Ferry
         {
             if (Mathf.Abs(currentSpeed) < 0.0001f) return;
 
-            // Convert speed to delta percent per frame.
-            double delta = (currentSpeed * Time.deltaTime) / 10.0;
+            // Convert speed to delta percent per frame using actual spline length.
+            // This ensures consistent world-space speed regardless of spline length.
+            float splineLength = spline.CalculateLength();
+            if (splineLength < 0.001f) return;
+
+            double delta = (currentSpeed * Time.deltaTime) / splineLength;
             currentPercent = System.Math.Clamp(currentPercent - delta, 0.0, 1.0);
 
             ApplySplinePosition();
@@ -561,7 +567,7 @@ namespace HOK.Ferry
             currentPercent = System.Math.Clamp(projectedSample.percent, 0.0, 1.0);
 
             RefreshJunctions();
-            junctionCooldown = 1.5f;
+            junctionCooldown = junctionCooldownDuration;
             onJunctionTaken?.Raise();
         }
 

@@ -6,7 +6,7 @@
 **Platform:** Unity (Version TBD)
 **Source:** `E:\Unity\Hooked On Kharon`
 **Repository:** https://github.com/TecVooDoo/HookedOnKharon
-**Document Version:** 16
+**Document Version:** 17
 **Last Updated:** January 30, 2026
 
 **Archive:** `HookedOnKharon_Status_Archive.md` - Historical designs, old version history, completed phase details (create when needed)
@@ -21,7 +21,7 @@
 
 **Current Phase:** Pre-Production
 
-**Last Session (Jan 30, 2026):** Fixed junction system - junctions now work repeatedly (was stuck after first use due to input tracking bug). Removed takeJunctionPressed tracking, simplified to cooldown-based spam prevention. Fixed Junction_ToRiver position (was at dock end 0.95, now at split point 0.05). Cleaned up excessive debug logging.
+**Last Session (Jan 30, 2026):** Fixed spline speed inconsistency - was using hardcoded divisor instead of actual spline length, causing different speeds on different splines. Made junction cooldown configurable in Inspector (default 2.5s). Updated default spline speed to 4 units/sec.
 
 ---
 
@@ -854,6 +854,7 @@ After each work session, update this document:
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 17 | Jan 30, 2026 | Fixed spline speed inconsistency (was using hardcoded /10.0 instead of actual spline length). Made junction cooldown configurable in Inspector. Updated default spline speed to 4 units/sec. |
 | 16 | Jan 30, 2026 | Fixed junction system: removed takeJunctionPressed tracking (was causing one-time-only bug), simplified to cooldown-based prevention. Fixed Junction_ToRiver position from 0.95 to 0.05. Junctions now work repeatedly. |
 | 15 | Jan 29, 2026 | Unified PlayerMovementController (Free + Spline modes). Separate Hub/River speeds. Spline rotation following. Auto-detect MainRiver tag. Scene transitions working both directions. Junction system needs fixing (next session). |
 | 14 | Jan 29, 2026 | Scene transitions implemented: SceneTransitionManager, RiverExit, RiverEntrance completion. Auto input map switching. MVP Navigation section complete. |
